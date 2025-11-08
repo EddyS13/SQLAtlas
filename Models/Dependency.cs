@@ -1,0 +1,14 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace DatabaseVisualizer.Models
+{
+    public class Dependency
+    {
+        public string Type { get; set; } // 'Calls' or 'Called By' or 'Touches Table'
+        public string ObjectName { get; set; }
+    }
+}

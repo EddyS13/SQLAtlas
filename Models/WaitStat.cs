@@ -1,0 +1,15 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace DatabaseVisualizer.Models
+{
+    public class WaitStat
+    {
+        public string WaitType { get; set; }
+        public long WaitTimeSeconds { get; set; }
+        public long WaitingTasksCount { get; set; }
+    }
+}
