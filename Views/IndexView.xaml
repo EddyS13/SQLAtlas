@@ -1,0 +1,94 @@
+﻿<UserControl x:Class="DatabaseVisualizer.Views.IndexView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:DatabaseVisualizer.Converters"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             mc:Ignorable="d" 
+             d:DesignHeight="600" 
+             d:DesignWidth="800">
+
+    <UserControl.Resources>
+        <local:ScriptToEnabledConverter x:Key="ScriptToEnabledConverter"/>
+    </UserControl.Resources>
+
+    <DockPanel Margin="10">
+
+        <TextBlock DockPanel.Dock="Top" Margin="0,0,0,10" FontWeight="ExtraBold" FontSize="16"
+                   Foreground="{StaticResource AccentColor}"
+                   Text="Index Fragmentation / Analysis"/>
+
+        <Button Content="Refresh Index Analysis" 
+                DockPanel.Dock="Top" 
+                Margin="0,0,0,10"
+                Padding="5"
+                x:Name="RefreshIndexButton" 
+                Click="RefreshIndexButton_Click"/>
+
+        <TextBlock x:Name="IndexStatusTextBlock" 
+                   DockPanel.Dock="Top" 
+                   Margin="0,5,0,5" 
+                   Foreground="{StaticResource AccentColor}"
+                   FontStyle="Italic"
+                   Text="Ready for analysis."/>
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+
+                <TextBlock FontWeight="Bold" FontSize="14" 
+                           Foreground="{StaticResource AccentColor}"
+                           Text="Missing Index Recommendations (Highest Performance Gain)"
+                           Margin="0,10,0,5"/>
+                <Grid HorizontalAlignment="Left">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock x:Name="NoMissingIndexesTextBlock" 
+                               Text="— No missing index recommendations found. Server logs are clean. —" 
+                               FontStyle="Italic" 
+                               HorizontalAlignment="Center" 
+                               Visibility="Collapsed" 
+                               Foreground="{StaticResource FontColor}"/>
+
+                    <DataGrid x:Name="MissingIndexDataGrid" 
+                              HeadersVisibility="Column"
+                              Height="200"
+                              PreviewMouseWheel="DataGrid_PreviewMouseWheel"/>
+                </Grid>
+
+                <TextBlock FontWeight="Bold" FontSize="14" 
+                           Foreground="{StaticResource AccentColor}"
+                           Text="Fragmented Index Check (Over 5% Fragmentation)"
+                           Margin="0,10,0,5"/>
+
+                <DataGrid x:Name="FragmentedIndexDataGrid" 
+                          AutoGenerateColumns="False" 
+                          HeadersVisibility="Column"
+                          PreviewMouseWheel="DataGrid_PreviewMouseWheel">
+
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Table Name" Binding="{Binding TableName}" Width="*"/>
+                        <DataGridTextColumn Header="Index Name" Binding="{Binding IndexName}" Width="1.5*"/>
+                        <DataGridTextColumn Header="Frag (%)" Binding="{Binding FragmentationPercent, StringFormat={}{0:F2}}" Width="80"/>
+
+                        <DataGridTemplateColumn Header="Action" Width="120">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Button Content="{Binding MaintenanceAction}" 
+                                            Click="MaintenanceActionButton_Click" 
+                                            IsEnabled="{Binding MaintenanceScript, Converter={StaticResource ScriptToEnabledConverter}}"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+
+                <TextBlock DockPanel.Dock="Bottom" Margin="0,10,0,0" FontStyle="Italic" TextWrapping="Wrap"
+                           Text="Note: Fragments over 30% are critical and require REBUILD."/>
+
+            </StackPanel>
+        </ScrollViewer>
+
+    </DockPanel>
+</UserControl>

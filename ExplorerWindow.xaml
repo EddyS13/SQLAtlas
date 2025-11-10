@@ -39,48 +39,54 @@
                 </Trigger>
             </Style.Triggers>
         </Style>
+
+        <Style TargetType="{x:Type ListBoxItem}">
+            <Setter Property="Background" Value="{StaticResource WindowBackground}"/>
+            <Setter Property="Foreground" Value="{StaticResource FontColor}"/>
+            <Setter Property="Padding" Value="5,8"/>
+            <Setter Property="BorderThickness" Value="0"/>
+
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="{StaticResource AccentColor}"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </Trigger>
+
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{StaticResource HighlightColor}"/>
+                    <Setter Property="Foreground" Value="{StaticResource AccentColor}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
     </Window.Resources>
 
     <DockPanel>
-
-        <!--<Border DockPanel.Dock="Top" 
-            Background="{StaticResource PaneBackground}" 
-            BorderBrush="{StaticResource BorderColor}" 
-            BorderThickness="0,0,0,1" 
-            Padding="10">
-            <TextBlock Text="DATABASE VISUALIZER" 
-                   Foreground="{StaticResource AccentColor}" 
-                   FontSize="28" 
-                   FontWeight="ExtraBold" 
-                   HorizontalAlignment="Center"/>
-        </Border>-->
-
         <Border DockPanel.Dock="Top" 
         Background="{StaticResource PaneBackground}" 
         BorderBrush="{StaticResource BorderColor}" 
         BorderThickness="0,0,0,1" 
-        Padding="0">
+        Padding="10">
 
             <Grid Height="50" Margin="10,0,10,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
-                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Left">
                     <Image Source="/DatabaseVisualizer;component/Images/Database Visualizer Logo.png" 
-                   Width="30" Height="30" Margin="0,0,8,0"
+                   Width="50" Height="50" Margin="0,0,8,0"
                    RenderOptions.BitmapScalingMode="HighQuality"/>
+
                     <TextBlock Text="DATABASE VISUALIZER" 
                        Foreground="{StaticResource AccentColor}" 
-                       FontSize="22" 
+                       FontSize="28" 
                        FontWeight="ExtraBold" 
                        FontFamily="/DatabaseVisualizer;component/Fonts/#Roboto"
                        VerticalAlignment="Center"/>
                 </StackPanel>
 
-                <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
 
                     <Button Content="Disconnect" 
                     Click="DisconnectButton_Click" 
@@ -95,17 +101,29 @@
         </Border>
 
         <StatusBar DockPanel.Dock="Bottom" Background="{StaticResource WindowBackground}" BorderBrush="{StaticResource BorderColor}" BorderThickness="0,1,0,0">
+
             <StatusBarItem>
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock FontWeight="Bold" Text="Connection: " Foreground="{StaticResource FontColor}"/>
-                    <TextBlock x:Name="ConnectionInfoTextBlock" Text="Not Connected" Foreground="{StaticResource FontColor}"/>
+                    <TextBlock FontWeight="Bold" Text="Connection: "/>
+                    <TextBlock x:Name="ConnectionInfoTextBlock" Text="Not Connected"/>
                 </StackPanel>
             </StatusBarItem>
+
+            <StatusBarItem HorizontalAlignment="Right">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Version: " Margin="10,0"/>
+                    <TextBlock x:Name="VersionNumberTextBlock" Text="v0.7.1" Foreground="{StaticResource AccentColor}"/>
+                    <TextBlock Text=" (" Margin="5,0,0,0"/>
+                    <TextBlock x:Name="VersionDateTextBlock" Text="2025-11-08" Margin="0,0,5,0"/>
+                    <TextBlock Text=")"/>
+                </StackPanel>
+            </StatusBarItem>
+
         </StatusBar>
 
         <Grid Background="{StaticResource WindowBackground}">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="300"/>
+                <ColumnDefinition Width="350"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
@@ -114,25 +132,44 @@
                     BorderBrush="{StaticResource BorderColor}" 
                     BorderThickness="0,0,1,0" 
                     Padding="15">
-                <DockPanel>
-                    <TextBlock DockPanel.Dock="Top"
-                        Text="Database Objects" 
-                        Foreground="{StaticResource AccentColor}"
-                        FontWeight="SemiBold" 
-                        FontSize="14"
-                        Margin="0,0,0,5"/>
 
-                    <TextBox x:Name="SearchTextBox" 
-                         DockPanel.Dock="Top"
-                         Margin="0,0,0,10"
-                         TextChanged="SearchTextBox_TextChanged"
-                         FontFamily="Segoe UI"
-                         Text=""/>
+                <DockPanel>
+                    <TextBlock Text="DIAGNOSTIC TOOLS" 
+                       FontWeight="SemiBold" 
+                       FontSize="14" 
+                       DockPanel.Dock="Top" 
+                       Margin="0,0,0,5"/>
+                    <ListBox x:Name="ToolsListBox" 
+                         DockPanel.Dock="Top" 
+                         SelectionMode="Single" 
+                         SelectionChanged="ToolsListBox_SelectionChanged" 
+                         Margin="0,0,0,10"/>
+
+                    <TextBlock Text="SCHEMA OBJECTS" 
+                       FontWeight="SemiBold" 
+                       FontSize="14" 
+                       DockPanel.Dock="Top" 
+                       Margin="0,15,0,5"/> 
+
+                    <Grid DockPanel.Dock="Top" Margin="0,0,0,10">
+                        <TextBox x:Name="SearchTextBox" 
+                             Padding="25,5,5,5" 
+                             TextChanged="SearchTextBox_TextChanged"
+                             FontFamily="Segoe UI"/>
+
+                        <TextBlock Text="🔍" 
+                               Foreground="{StaticResource BorderColor}" 
+                               VerticalAlignment="Center" 
+                               HorizontalAlignment="Left" 
+                               Margin="5,0,0,0" 
+                               IsHitTestVisible="False" 
+                               FontSize="14"/>
+                    </Grid>
 
                     <ScrollViewer VerticalScrollBarVisibility="Auto" 
-                          x:Name="ObjectListScrollViewer"
-                          Focusable="False" 
+                          HorizontalScrollBarVisibility="Disabled" x:Name="ObjectListScrollViewer"
                           PreviewMouseWheel="ObjectListScrollViewer_PreviewMouseWheel">
+
                         <ListBox x:Name="ObjectListBox" 
                                  Background="{StaticResource WindowBackground}"
                                  BorderThickness="0"
@@ -176,7 +213,7 @@
             <GridSplitter Grid.Column="0" 
                           HorizontalAlignment="Right" 
                           VerticalAlignment="Stretch" 
-                          Width="5" 
+                          Width="1" 
                           Background="{StaticResource BorderColor}"
                           ShowsPreview="True"/>
 
@@ -192,218 +229,12 @@
                            Foreground="{StaticResource AccentColor}"  FontWeight="SemiBold" 
                            Text="Select an object from the list."/>
 
-                    <TabControl x:Name="DetailsTabControl" Background="{StaticResource PaneBackground}" BorderBrush="{StaticResource BorderColor}" BorderThickness="1">
+                    <Border Grid.Column="1" Padding="10">
+                        <DockPanel>
+                            <ContentControl x:Name="MainContentHost" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+                        </DockPanel>
+                    </Border>
 
-                        <!-- Tab 1: Details -->
-                        <TabItem Header="Columns" x:Name="ColumnsTab" Background="{StaticResource PaneBackground}">
-                            <DataGrid x:Name="ColumnDetailsGrid" Background="{StaticResource PaneBackground}"/>
-                        </TabItem>
-
-                        <!-- Tab 2: Relationships -->
-                        <TabItem Header="Relationships" x:Name="RelationshipsTab" Background="{StaticResource PaneBackground}">
-                            <StackPanel Margin="10">
-
-                                <TextBlock Text="Table Mapping (Related Tables)" FontWeight="Bold" Margin="0,0,0,5"/>
-                                <DataGrid x:Name="TableRelationshipGrid" Height="200" HeadersVisibility="Column"/>
-
-                                <Separator Margin="0,15" Background="{StaticResource BorderColor}"/>
-
-                                <TextBlock Text="Foreign Keys Between Selected Tables (Max 2)" FontWeight="Bold" Margin="0,0,0,5"/>
-                                <TextBlock x:Name="TwoTableSelectionHint" Text="Select exactly two tables (Ctrl+Click) to see direct foreign keys." FontStyle="Italic" Foreground="{StaticResource FontColor}"/>
-
-                                <DataGrid x:Name="ForeignKeyGrid" HeadersVisibility="Column"/>
-
-                            </StackPanel>
-                        </TabItem>
-
-                        <!-- Tab 3: Code / Dependencies -->
-                        <TabItem Header="Code / Dependencies" x:Name="CodeTab" Background="{StaticResource PaneBackground}">
-                            <StackPanel Margin="10">
-
-                                <Grid Margin="0,0,0,10">
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                    </Grid.RowDefinitions>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="Created On: " FontWeight="Bold"/>
-                                    <TextBlock Grid.Column="1" x:Name="CreateDateTextBlock" Margin="5,0,0,0"/>
-                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Last Modified: " FontWeight="Bold"/>
-                                    <TextBlock Grid.Row="1" Grid.Column="1" x:Name="ModifyDateTextBlock" Margin="5,0,0,0"/>
-                                </Grid>
-
-                                <TextBlock Text="Parameters" FontWeight="Bold" Margin="0,0,0,5"/>
-                                <Grid>
-                                    <TextBlock x:Name="NoParametersTextBlock" Text="— No parameters found for this object. —" FontStyle="Italic" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                    <DataGrid x:Name="ParameterGrid" AutoGenerateColumns="True" IsReadOnly="True"  Height="150" />
-                                </Grid>
-
-                                <TextBlock Text="Dependencies" FontWeight="Bold" Margin="0,15,0,5"/>
-                                <Grid>
-                                    <TextBlock x:Name="NoDependenciesTextBlock" Text="— No dependencies found for this object. —" FontStyle="Italic" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                    <DataGrid x:Name="DependencyGrid" AutoGenerateColumns="True" IsReadOnly="True" Height="200"/>
-                                </Grid>
-
-                                <TextBlock Text="Object Definition" FontWeight="Bold" Margin="0,15,0,5"/>
-
-                                <ScrollViewer MaxHeight="400" BorderBrush="{StaticResource BorderColor}" BorderThickness="1" Background="{StaticResource WindowBackground}">
-                                    <TextBox x:Name="CodeDefinitionTextBox" IsReadOnly="True" TextWrapping="Wrap" 
-                                             FontFamily="Consolas" FontSize="12" BorderThickness="0" 
-                                             Background="Transparent" Foreground="{StaticResource FontColor}"/>
-                                </ScrollViewer>
-                            </StackPanel>
-                        </TabItem>
-
-                        <!-- Tab 4: Performance -->
-                        <TabItem Header="Performance" x:Name="PerformanceTab" Background="{StaticResource PaneBackground}">
-                            <DockPanel Margin="10">
-
-                                <TextBlock DockPanel.Dock="Top" Margin="0,0,0,10" FontWeight="ExtraBold" FontSize="14"
-                                           Foreground="{StaticResource AccentColor}"
-                                           Text="Top 5 Longest Running Queries (Active Requests)"/>
-
-                                <Button Content="Refresh Performance Data" DockPanel.Dock="Top" Margin="0,0,0,10" Padding="5"
-                                        x:Name="RefreshPerformanceButton" Click="RefreshPerformanceButton_Click"/>
-
-                                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                                    <StackPanel>
-
-                                        <DataGrid x:Name="PerformanceDataGrid" HeadersVisibility="Column" Margin="0,0,0,20"/>
-
-                                        <TextBlock FontWeight="Bold" FontSize="14" Foreground="{StaticResource AccentColor}"
-                                           Text="Top 10 Expensive Queries (By Total Reads/I/O)"/>
-                                        <DataGrid x:Name="ExpensiveQueriesDataGrid" HeadersVisibility="Column" Margin="0,0,0,20"/>
-
-                                        <TextBlock FontWeight="Bold" FontSize="14" Foreground="{StaticResource AccentColor}"
-                                           Text="Top 10 Wait Statistics (Cumulative Bottlenecks)"/>
-                                        <DataGrid x:Name="WaitStatsDataGrid" HeadersVisibility="Column"/>
-
-                                        <TextBlock Margin="0,20,0,10" FontWeight="Bold" FontSize="14"
-                                            Foreground="{StaticResource AccentColor}"
-                                           Text="Current Blocking Chain (Real-Time)"/>
-                                        <DataGrid x:Name="BlockingChainDataGrid" 
-                                              HeadersVisibility="Column"
-                                              Margin="0,0,0,20"/>
-
-                                    </StackPanel>
-                                </ScrollViewer>
-                            </DockPanel>
-                        </TabItem>
-
-                        <!-- Tab 5: Activity -->
-                        <TabItem Header="Activity" x:Name="ActivityTab">
-                            <DockPanel Margin="10">
-
-                                <Button Content="Refresh Activity" 
-                                    DockPanel.Dock="Top" 
-                                    Margin="0,0,0,10"
-                                    Padding="5"
-                                    x:Name="RefreshActivityButton" 
-                                    Click="RefreshActivityButton_Click"/>
-
-                                <StackPanel Orientation="Horizontal" DockPanel.Dock="Top" Margin="0,5,0,15">
-                                    <TextBlock FontWeight="Bold" Text="Query Plan Cache Size: "/>
-                                    <TextBlock x:Name="PlanCacheSizeTextBlock" 
-                                       Text="N/A" 
-                                       Foreground="{StaticResource AccentColor}" 
-                                       TextWrapping="Wrap" 
-                                       Width="200"/>
-                                </StackPanel>
-
-                                <TextBlock DockPanel.Dock="Top" Margin="0,15,0,5" FontWeight="Bold" FontSize="14"
-                                   Foreground="{StaticResource AccentColor}"
-                                   Text="Database File and Space Usage" 
-                                   HorizontalAlignment="Left"/>
-
-                                <DataGrid x:Name="DatabaseSpaceDataGrid" 
-                                  HeadersVisibility="Column"
-                                  DockPanel.Dock="Top"
-                                  Height="150" 
-                                  Margin="0,0,0,15"/>
-
-                                <TextBlock DockPanel.Dock="Top" Margin="0,0,0,5" FontWeight="Bold" FontSize="14"
-                                   Foreground="{StaticResource AccentColor}"
-                                   Text="Active Sessions and Running Commands"/>
-
-                                <DataGrid x:Name="ActivityDataGrid" 
-                                      HeadersVisibility="Column"
-                                      DockPanel.Dock="Top"
-                                      Margin="0, 0, 0, 0"/>
-
-                            </DockPanel>
-                        </TabItem>
-
-                        <!-- Tab 6: Index Analysis -->
-                        <TabItem Header="Index Analysis" x:Name="IndexAnalysisTab">
-                            <DockPanel Margin="10">
-
-                                <TextBlock DockPanel.Dock="Top" Margin="0,0,0,10" FontWeight="ExtraBold" FontSize="14"
-                                    Foreground="{StaticResource AccentColor}"
-                                    Text="Index Fragmentation Analysis"/>
-
-                                <Button Content="Refresh Index Analysis" 
-                                    DockPanel.Dock="Top" 
-                                    Margin="0,0,0,10"
-                                    Padding="5"
-                                    x:Name="RefreshIndexButton" 
-                                    Click="RefreshIndexButton_Click"/>
-
-                                <TextBlock x:Name="IndexStatusTextBlock" 
-                                  DockPanel.Dock="Top" 
-                                   Margin="0,5,0,5" 
-                                   Foreground="{StaticResource AccentColor}"
-                                   FontStyle="Italic"
-                                   Text="Ready for analysis."/>
-
-                                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                                    <StackPanel>
-
-                                        <TextBlock FontWeight="Bold" FontSize="14" 
-                                           Foreground="{StaticResource AccentColor}"
-                                           Text="Missing Index Recommendations (Highest Performance Gain)"
-                                           Margin="0,10,0,5"/>
-                                        <DataGrid x:Name="MissingIndexDataGrid" 
-                                              HeadersVisibility="Column"
-                                              Height="200"
-                                              Margin="0,0,0,15"/>
-
-                                        <TextBlock FontWeight="Bold" FontSize="14" 
-                                            Foreground="{StaticResource AccentColor}"
-                                            Text="Fragmented Index Check (Over 5% Fragmentation)"
-                                            Margin="0,10,0,5"/>
-                                        <DataGrid x:Name="FragmentedIndexDataGrid" 
-                                           HeadersVisibility="Column"/>
-
-                                        <TextBlock DockPanel.Dock="Bottom" Margin="0,10,0,0" FontStyle="Italic" TextWrapping="Wrap"
-                                            Text="Note: Fragments over 30% are critical and require REBUILD."/>
-
-                                    </StackPanel>
-                                </ScrollViewer>
-
-                            </DockPanel>
-                        </TabItem>
-
-                        <!-- Tab 7: Security -->
-                        <TabItem Header="Security" x:Name="SecurityTab">
-                            <DockPanel Margin="10">
-
-                                <TextBlock DockPanel.Dock="Top" Margin="0,0,0,10" FontWeight="ExtraBold" FontSize="14"
-                                    Foreground="{StaticResource AccentColor}"
-                                   Text="Object-Level Permissions (Who can access this object)"/>
-    
-                                <DataGrid x:Name="PermissionsDataGrid" 
-                                      HeadersVisibility="Column"
-                                      DockPanel.Dock="Top"/>
-
-                                <TextBlock DockPanel.Dock="Bottom" Margin="0,10,0,0" FontStyle="Italic" TextWrapping="Wrap"
-                                       Text="Note: Permissions are hierarchical. Roles inherit permissions."/>
-                            </DockPanel>
-                        </TabItem>
-
-                    </TabControl>
                 </DockPanel>
             </Border>
         </Grid>

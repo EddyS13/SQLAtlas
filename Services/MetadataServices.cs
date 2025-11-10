@@ -182,23 +182,30 @@ namespace DatabaseVisualizer.Services
             try
             {
                 string sql = @"
-                    SELECT DISTINCT
-                        'References' AS RelationshipType,
-                        OBJECT_NAME(fk.referenced_object_id) AS ConnectedTable
-                    FROM 
-                        sys.foreign_keys fk
-                    WHERE 
-                        OBJECT_NAME(fk.parent_object_id) = @TableName 
-                    
-                    UNION
-                    
-                    SELECT DISTINCT
+                    DECLARE @ObjectID INT = OBJECT_ID(@TableName);
+
+                    -- If the table is not found (e.g., @ObjectID is NULL), the query will return an empty set.
+                    IF @ObjectID IS NULL RETURN; 
+
+                    -- 1. Get tables that reference the selected table ('Referenced By')
+                    SELECT 
                         'Referenced By' AS RelationshipType,
-                        OBJECT_NAME(fk.parent_object_id) AS ConnectedTable
-                    FROM 
-                        sys.foreign_keys fk
-                    WHERE 
-                        OBJECT_NAME(fk.referenced_object_id) = @TableName;";
+                        QUOTENAME(s.name) + '.' + QUOTENAME(o.name) AS ConnectedTable
+                    FROM sys.foreign_keys fk
+                    INNER JOIN sys.objects o ON fk.parent_object_id = o.object_id
+                    INNER JOIN sys.schemas s ON o.schema_id = s.schema_id
+                    WHERE fk.referenced_object_id = @ObjectID
+
+                    UNION ALL
+
+                    -- 2. Get tables that the selected table references ('References')
+                    SELECT 
+                        'References' AS RelationshipType,
+                        QUOTENAME(s.name) + '.' + QUOTENAME(o.name) AS ConnectedTable
+                    FROM sys.foreign_keys fk
+                    INNER JOIN sys.objects o ON fk.referenced_object_id = o.object_id
+                    INNER JOIN sys.schemas s ON o.schema_id = s.schema_id
+                    WHERE fk.parent_object_id = @ObjectID;";
 
                 var parameters = new Dictionary<string, object>
                 {
@@ -671,22 +678,22 @@ namespace DatabaseVisualizer.Services
             {
                 // T-SQL to find fragmented indexes (> 5% fragmentation and > 1000 pages)
                 string sql = @"
-            SELECT 
-                QUOTENAME(s.name) + '.' + QUOTENAME(t.name) AS TableName,
-                i.name AS IndexName,
-                ps.avg_fragmentation_in_percent AS FragmentationPercent,
-                ps.page_count AS PageCount,
-                CASE 
-                    WHEN ps.avg_fragmentation_in_percent > 30 THEN 'REBUILD (CRITICAL)'
-                    WHEN ps.avg_fragmentation_in_percent > 5 THEN 'REORGANIZE'
-                    ELSE 'OK'
-                END AS MaintenanceAction
-            FROM sys.dm_db_index_physical_stats(DB_ID(), NULL, NULL, NULL, 'LIMITED') ps
-            INNER JOIN sys.tables t ON ps.object_id = t.object_id
-            INNER JOIN sys.schemas s ON t.schema_id = s.schema_id
-            INNER JOIN sys.indexes i ON ps.object_id = i.object_id AND ps.index_id = i.index_id
-            WHERE ps.avg_fragmentation_in_percent > 5 AND ps.page_count > 1000
-            ORDER BY ps.avg_fragmentation_in_percent DESC;";
+                SELECT 
+                    QUOTENAME(s.name) + '.' + QUOTENAME(t.name) AS TableName,
+                    i.name AS IndexName,
+                    ps.avg_fragmentation_in_percent AS FragmentationPercent,
+                    ps.page_count AS PageCount,
+                    CASE 
+                        WHEN ps.avg_fragmentation_in_percent > 30 THEN 'REBUILD (CRITICAL)'
+                        WHEN ps.avg_fragmentation_in_percent > 5 THEN 'REORGANIZE'
+                        ELSE 'OK'
+                    END AS MaintenanceAction
+                FROM sys.dm_db_index_physical_stats(DB_ID(), NULL, NULL, NULL, 'LIMITED') ps
+                INNER JOIN sys.tables t ON ps.object_id = t.object_id
+                INNER JOIN sys.schemas s ON t.schema_id = s.schema_id
+                INNER JOIN sys.indexes i ON ps.object_id = i.object_id AND ps.index_id = i.index_id
+                WHERE ps.avg_fragmentation_in_percent > 5 AND ps.page_count > 1000
+                ORDER BY ps.avg_fragmentation_in_percent DESC;";
 
                 DataTable dt = SqlConnectionManager.ExecuteQuery(sql);
                 var fragList = new List<IndexFragmentation>();
@@ -695,13 +702,40 @@ namespace DatabaseVisualizer.Services
                 {
                     foreach (DataRow row in dt.Rows)
                     {
+                        double fragmentationPercent = (row["FragmentationPercent"] != DBNull.Value) ? Convert.ToDouble(row["FragmentationPercent"]) : 0.0;
+
+                        string action;
+                        string script;
+
+                        if (fragmentationPercent > 30)
+                        {
+                            action = "REBUILD (CRITICAL)";
+                            // NOTE: Use the full qualified name for DDL safety
+                            string fullTableName = row["TableName"]?.ToString() ?? "N/A";
+                            string indexName = row["IndexName"]?.ToString() ?? "N/A";
+                            script = $"ALTER INDEX {indexName} ON {fullTableName} REBUILD WITH (ONLINE = ON);";
+                        }
+                        else if (fragmentationPercent > 5)
+                        {
+                            action = "REORGANIZE";
+                            string fullTableName = row["TableName"]?.ToString() ?? "N/A";
+                            string indexName = row["IndexName"]?.ToString() ?? "N/A";
+                            script = $"ALTER INDEX {indexName} ON {fullTableName} REORGANIZE;";
+                        }
+                        else
+                        {
+                            action = "OK (No Action)";
+                            script = "N/A";
+                        }
+
                         fragList.Add(new IndexFragmentation
                         {
                             TableName = row["TableName"]?.ToString() ?? "N/A",
                             IndexName = row["IndexName"]?.ToString() ?? "N/A",
                             FragmentationPercent = Convert.ToDouble(row["FragmentationPercent"]),
                             PageCount = Convert.ToInt64(row["PageCount"]),
-                            MaintenanceAction = row["MaintenanceAction"]?.ToString() ?? "N/A"
+                            MaintenanceAction = action, // <<< This populates the button text
+                            MaintenanceScript = script  // <<< This is the executable command   
                         });
                     }
                 }

@@ -15,19 +15,6 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-           
-        <!--<Border Grid.Row="0" 
-                Background="{StaticResource PaneBackground}" 
-                BorderBrush="{StaticResource BorderColor}" 
-                BorderThickness="0,0,0,1" 
-                Padding="20">
-            <TextBlock Text="DATABASE VISUALIZER" 
-                       Foreground="{StaticResource AccentColor}" 
-                       FontSize="24" 
-                       FontWeight="ExtraBold" 
-                       HorizontalAlignment="Center"/>
-        </Border>-->
-
         <Border Grid.Row="0" 
         Background="{StaticResource PaneBackground}" 
         BorderBrush="{StaticResource BorderColor}" 
@@ -38,16 +25,15 @@
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center">
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Left">
                     <Image Source="/DatabaseVisualizer;component/Images/Database Visualizer Logo.png" 
-                   Width="40" Height="40" Margin="0,0,10,0"
+                   Width="50" Height="50" Margin="0,0,10,0"
                    RenderOptions.BitmapScalingMode="HighQuality"/>
                     <TextBlock Text="DATABASE VISUALIZER" 
                        Foreground="{StaticResource AccentColor}" 
-                       FontSize="24" 
+                       FontSize="28" 
                        FontWeight="ExtraBold" 
                        FontFamily="/DatabaseVisualizer;component/Fonts/#Roboto"
                        VerticalAlignment="Center"/>

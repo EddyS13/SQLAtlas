@@ -13,5 +13,6 @@ namespace DatabaseVisualizer.Models
         public double FragmentationPercent { get; set; }
         public long PageCount { get; set; }
         public string MaintenanceAction { get; set; } // Rebuild or Reorganize
+        public string MaintenanceScript { get; set; } // <<< ADD THIS FIELD
     }
 }

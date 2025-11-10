@@ -1,0 +1,44 @@
+﻿<UserControl x:Class="DatabaseVisualizer.Views.PerformanceView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:DatabaseVisualizer.Views"
+             mc:Ignorable="d" 
+             d:DesignHeight="450" d:DesignWidth="800">
+    <Grid>
+        <DockPanel Margin="10">
+
+            <Button Content="Refresh Performance Data" DockPanel.Dock="Top" Margin="0,0,0,10" Padding="5"
+                            x:Name="RefreshPerformanceButton" Click="RefreshPerformanceButton_Click"/>
+
+            <TextBlock DockPanel.Dock="Top" Margin="0,0,0,10" FontWeight="ExtraBold" FontSize="14"
+                                           Foreground="{StaticResource AccentColor}"
+                                           Text="Top 5 Longest Running Queries (Active Requests)"/>
+
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+
+                    <DataGrid x:Name="PerformanceDataGrid" HeadersVisibility="Column" Margin="0,0,0,20"/>
+
+                    <TextBlock FontWeight="Bold" FontSize="14" Foreground="{StaticResource AccentColor}"
+                                           Text="Top 10 Expensive Queries (By Total Reads/I/O)"/>
+                    <DataGrid x:Name="ExpensiveQueriesDataGrid" HeadersVisibility="Column" Margin="0,0,0,20"/>
+
+                    <TextBlock FontWeight="Bold" FontSize="14" Foreground="{StaticResource AccentColor}"
+                                           Text="Top 10 Wait Statistics (Cumulative Bottlenecks)"/>
+                    <DataGrid x:Name="WaitStatsDataGrid" HeadersVisibility="Column"/>
+
+                    <TextBlock Margin="0,20,0,10" FontWeight="Bold" FontSize="14"
+                                            Foreground="{StaticResource AccentColor}"
+                                           Text="Current Blocking Chain (Real-Time)"/>
+                    
+                    <DataGrid x:Name="BlockingChainDataGrid" 
+                                              HeadersVisibility="Column"
+                                              Margin="0,0,0,20"/>
+
+                </StackPanel>
+            </ScrollViewer>
+        </DockPanel>
+    </Grid>
+</UserControl>
