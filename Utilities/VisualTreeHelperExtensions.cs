@@ -14,15 +14,18 @@ namespace DatabaseVisualizer.Utilities
             {
                 for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
                 {
-                    DependencyObject child = VisualTreeHelper.GetChild(parent, i);
-                    if (child != null && child is T)
+                    DependencyObject? child = VisualTreeHelper.GetChild(parent, i);
+                    if (child is T tChild)
                     {
-                        yield return (T)child;
+                        yield return tChild;
                     }
 
-                    foreach (T childOfChild in FindVisualChildren<T>(child))
+                    if (child != null)
                     {
-                        yield return childOfChild;
+                        foreach (T childOfChild in FindVisualChildren<T>(child))
+                        {
+                            yield return childOfChild;
+                        }
                     }
                 }
             }

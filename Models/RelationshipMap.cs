@@ -9,7 +9,7 @@ namespace DatabaseVisualizer.Models
     // Represents all tables related to a single selected table
     public class RelationshipMap
     {
-        public string RelationshipType { get; set; } // e.g., "References" or "Referenced By"
-        public string ConnectedTable { get; set; }
+        public string RelationshipType { get; set; } = string.Empty;
+        public string ConnectedTable { get; set; } = string.Empty;
     }
 }

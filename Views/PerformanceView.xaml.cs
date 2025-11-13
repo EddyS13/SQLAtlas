@@ -3,6 +3,7 @@
 using DatabaseVisualizer.Models;
 using DatabaseVisualizer.Services;
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -12,10 +13,8 @@ namespace DatabaseVisualizer.Views
     public partial class PerformanceView : UserControl
     {
         private readonly MetadataService _metadataService = new MetadataService();
-        private readonly DatabaseObject _selectedObject;
 
-        private readonly List<DatabaseObject> _selectedObjects;
-        private readonly bool _isMultiSelect; // To differentiate logic within the view
+        // Parameterless constructor for direct navigation (Tools Menu)
         public PerformanceView()
         {
             InitializeComponent();
@@ -24,16 +23,19 @@ namespace DatabaseVisualizer.Views
 
         private void PerformanceView_Loaded(object sender, RoutedEventArgs e)
         {
-            RefreshPerformanceButton_Click(null, null);
+            // Auto-refresh on first load (using null casts to satisfy C# NRT warnings)
+            RefreshPerformanceButton_Click((object?)null, (RoutedEventArgs?)null);
         }
 
-        private async void RefreshPerformanceButton_Click(object sender, RoutedEventArgs e)
+        private async void RefreshPerformanceButton_Click(object? sender, RoutedEventArgs? e)
         {
             RefreshPerformanceButton.Content = "ANALYZING PERFORMANCE...";
             RefreshPerformanceButton.IsEnabled = false;
 
             try
             {
+                // All service calls run asynchronously to prevent UI freeze
+
                 // 1. Top 5 Active Requests
                 var queryList = await Task.Run(() => _metadataService.GetLongRunningQueries());
                 PerformanceDataGrid.ItemsSource = queryList;
@@ -42,11 +44,11 @@ namespace DatabaseVisualizer.Views
                 var expensiveQueries = await Task.Run(() => _metadataService.GetTopExpensiveQueries());
                 ExpensiveQueriesDataGrid.ItemsSource = expensiveQueries;
 
-                // 3. Wait Stats (Feature 2A)
+                // 3. Wait Stats
                 var waitStats = await Task.Run(() => _metadataService.GetTopWaits());
                 WaitStatsDataGrid.ItemsSource = waitStats;
 
-                // 4. Blocking Chain (Feature 2C)
+                // 4. Blocking Chain
                 var blockingList = await Task.Run(() => _metadataService.GetCurrentBlockingChain());
                 BlockingChainDataGrid.ItemsSource = blockingList;
 

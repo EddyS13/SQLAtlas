@@ -8,8 +8,8 @@ namespace DatabaseVisualizer.Models
 {
     public class ObjectPermission
     {
-        public string PrincipalName { get; set; } // User or Role name
-        public string PermissionType { get; set; } // SELECT, EXECUTE, CONTROL, etc.
-        public string PermissionState { get; set; } // GRANT, DENY, or REVOKE
+        public string PrincipalName { get; set; } = string.Empty;
+        public string PermissionType { get; set; } = string.Empty;
+        public string PermissionState { get; set; } = string.Empty;
     }
 }

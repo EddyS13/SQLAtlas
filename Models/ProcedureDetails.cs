@@ -8,7 +8,7 @@ namespace DatabaseVisualizer.Models
 {
     public class ProcedureDetails
     {
-        public string Definition { get; set; }
+        public string Definition { get; set; } = string.Empty;
         public List<ProcedureParameter> Parameters { get; set; } = new List<ProcedureParameter>();
 
         // New properties

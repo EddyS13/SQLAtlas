@@ -8,11 +8,11 @@ namespace DatabaseVisualizer.Models
 {
     public class DatabaseSpaceInfo
     {
-        public string FileGroupName { get; set; }
-        public string FileName { get; set; }
-        public string FileType { get; set; } // DATA or LOG
-        public string CurrentSizeMB { get; set; }
-        public string AvailableFreeSpaceMB { get; set; }
-        public string MaxSize { get; set; } // Max growth limit
+        public string FileGroupName { get; set; } = string.Empty;
+        public string FileName { get; set; } = string.Empty;
+        public string FileType { get; set; } = string.Empty;
+        public string CurrentSizeMB { get; set; } = string.Empty;
+        public string AvailableFreeSpaceMB { get; set; } = string.Empty;
+        public string MaxSize { get; set; } = string.Empty;
     }
 }

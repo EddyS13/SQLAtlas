@@ -19,22 +19,25 @@ namespace DatabaseVisualizer
     {
         private readonly MetadataService _metadataService = new MetadataService();
         // CRITICAL FIX: Declare the ICollectionView field for search/filtering
-        private ICollectionView _objectCollectionView;
+        private ICollectionView? _objectCollectionView;
 
-        public ExplorerWindow(Dictionary<string, List<DatabaseObject>> groupedObjects, string serverName, string databaseName)
+        public ExplorerWindow(Dictionary<string, List<DatabaseObject>>? groupedObjects, // Add '?'
+                             string? serverName,
+                             string? databaseName)
         {
             InitializeComponent();
 
             // 1. Initial Setup
-            LoadObjectListBox(groupedObjects);
+            var safeGroupedObjects = groupedObjects ?? new Dictionary<string, List<DatabaseObject>>();
+            LoadObjectListBox(safeGroupedObjects);
             PopulateToolsMenu();
 
             // Set Version Info
-            VersionNumberTextBlock.Text = "v0.7.2";
+            VersionNumberTextBlock.Text = "v0.7.3";
             VersionDateTextBlock.Text = $"Build: {DateTime.Now:yyyy-MM-dd}";
 
             // Set the Status Bar text
-            ConnectionInfoTextBlock.Text = $"Server: {serverName} | DB: {databaseName}";
+            ConnectionInfoTextBlock.Text = $"Server: {serverName ?? "N/A"} | DB: {databaseName ?? "N/A"}";
 
             // Set initial default view
             MainContentHost.Content = new ActivityView();
@@ -152,21 +155,21 @@ namespace DatabaseVisualizer
 
         private void LoadDiagnosticView(string viewName)
         {
-            UserControl newView = viewName switch
+            UserControl? newView = viewName switch
             {
                 "Activity & Storage" => new ActivityView(),
                 "Performance Monitor" => new PerformanceView(),
                 "Index Analysis" => new IndexView(),
-                _ => null,
+                _ => null, 
             };
 
             // Fallback ensures ContentHost always receives a valid UserControl
-            MainContentHost.Content = newView ?? new UserControl { Content = new TextBlock { Text = $"Tool '{viewName}' not found." } };
+            MainContentHost.Content = newView ?? new UserControl { Content = new TextBlock { Text = "Tool not found." } };
         }
 
         private void LoadMetadataView(List<DatabaseObject> selectedObjects, bool isMultiSelect)
         {
-            UserControl newView = null;
+            UserControl? newView = null;
 
             if (isMultiSelect)
             {
@@ -236,6 +239,16 @@ namespace DatabaseVisualizer
                     scrollViewer.LineUp();
                 }
                 e.Handled = true;
+            }
+        }
+
+        private void WindowHeader_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            // Check if the left mouse button was pressed
+            if (e.LeftButton == MouseButtonState.Pressed)
+            {
+                // CRITICAL: Call the DragMove method to start moving the window.
+                this.DragMove();
             }
         }
     }

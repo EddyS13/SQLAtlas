@@ -8,7 +8,7 @@ namespace DatabaseVisualizer.Models
 {
     public class Dependency
     {
-        public string Type { get; set; } // 'Calls' or 'Called By' or 'Touches Table'
-        public string ObjectName { get; set; }
+        public string Type { get; set; } = string.Empty;
+        public string ObjectName { get; set; } = string.Empty;
     }
 }

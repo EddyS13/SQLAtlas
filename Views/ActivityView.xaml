@@ -9,45 +9,74 @@
     <DockPanel Margin="10">
 
         <Button Content="Refresh Activity" 
-                DockPanel.Dock="Top" 
-                Margin="0,0,0,10"
-                Padding="5"
-                x:Name="RefreshActivityButton" 
-                Click="RefreshActivityButton_Click"/>
+            DockPanel.Dock="Top" 
+            Margin="0,0,0,10"
+            Padding="5"
+            x:Name="RefreshActivityButton" 
+            Click="RefreshActivityButton_Click"/>
 
-        <StackPanel Orientation="Horizontal" DockPanel.Dock="Top" Margin="0,5,0,15">
-            <TextBlock FontWeight="Bold" Text="Query Plan Cache Size: "/>
+        <StackPanel Orientation="Horizontal" 
+            DockPanel.Dock="Top" 
+            Margin="0,5,0,15">
+            
+            <TextBlock FontWeight="Bold" 
+                Text="Query Plan Cache Size: "/>
+            
             <TextBlock x:Name="PlanCacheSizeTextBlock" 
-                       Text="N/A" 
-                       Foreground="{StaticResource AccentColor}" 
-                       TextWrapping="Wrap" 
-                       Width="200"/>
+                Text="N/A" 
+                Foreground="{StaticResource AccentColor}" 
+                TextWrapping="Wrap" 
+                Width="200"/>
+            
         </StackPanel>
 
-        <TextBlock DockPanel.Dock="Top" Margin="0,15,0,5" FontWeight="Bold" FontSize="14"
-                   Foreground="{StaticResource AccentColor}"
-                   Text="Database File and Space Usage" 
-                   HorizontalAlignment="Left"/>
+        <TextBlock DockPanel.Dock="Top" 
+            Margin="0,15,0,5" 
+            FontWeight="Bold" 
+            FontSize="14"
+            Foreground="{StaticResource AccentColor}"
+            Text="Database File and Space Usage" 
+            HorizontalAlignment="Left"/>
 
         <Grid DockPanel.Dock="Top" Margin="0,0,0,15">
+            
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
+            
             <DataGrid x:Name="DatabaseSpaceDataGrid" 
-                      HeadersVisibility="Column"
-                      Grid.Row="0"
-                      Height="Auto" 
-                      PreviewMouseWheel="DataGrid_PreviewMouseWheel" />
+                HeadersVisibility="Column"
+                Grid.Row="0"
+                Height="Auto" 
+                PreviewMouseWheel="DataGrid_PreviewMouseWheel"
+                CanUserAddRows="False"/>
+            
         </Grid>
 
-        <TextBlock DockPanel.Dock="Top" Margin="0,0,0,5" FontWeight="Bold" FontSize="14"
-                   Foreground="{StaticResource AccentColor}"
-                   Text="Active Sessions and Running Commands"/>
+        <Grid DockPanel.Dock="Top" Margin="0,0,0,10">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
 
-        <DataGrid x:Name="ActivityDataGrid" 
-                  HeadersVisibility="Column"
-                  PreviewMouseWheel="DataGrid_PreviewMouseWheel"
-                  Margin="0, 0, 0, 0"/>
+            <TextBlock Grid.Row="0"
+                Margin="0,0,0,5" 
+                FontWeight="Bold" 
+                FontSize="14"
+                Foreground="{StaticResource AccentColor}"
+                Text="Active Sessions and Running Commands"/>
+
+            <DataGrid x:Name="ActivityDataGrid"
+                Grid.Row="1"
+                HeadersVisibility="Column"
+                PreviewMouseWheel="DataGrid_PreviewMouseWheel"
+                CanUserAddRows="False"
+                Height="Auto"
+                MaxHeight="400"
+                Margin="0, 0, 0, 0"/>
+
+        </Grid>
 
     </DockPanel>
+    
 </UserControl>

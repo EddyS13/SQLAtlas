@@ -40,10 +40,10 @@ namespace DatabaseVisualizer.Services
                     var obj = new DatabaseObject
                     {
                         // CRITICAL: Trim and standardize names/types for reliable lookup
-                        Name = row["name"].ToString().Trim(),
-                        Type = row["type"].ToString().Trim().ToUpperInvariant(),
-                        TypeDescription = row["type_desc"].ToString().Trim(),
-                        SchemaName = row["SchemaName"].ToString().Trim()
+                        Name = row["name"]?.ToString()?.Trim() ?? string.Empty,
+                        Type = row["type"]?.ToString()?.Trim().ToUpperInvariant() ?? string.Empty,
+                        TypeDescription = row["type_desc"]?.ToString()?.Trim() ?? string.Empty,
+                        SchemaName = row["SchemaName"]?.ToString()?.Trim() ?? string.Empty
                     };
 
                     string groupKey = obj.TypeDescription;
@@ -160,11 +160,11 @@ namespace DatabaseVisualizer.Services
                     {
                         fks.Add(new ForeignKeyDetails
                         {
-                            ConstraintName = row["ConstraintName"].ToString(),
-                            ParentTable = row["ParentTable"].ToString(),
-                            ParentColumn = row["ParentColumn"].ToString(),
-                            ReferencedTable = row["ReferencedTable"].ToString(),
-                            ReferencedColumn = row["ReferencedColumn"].ToString(),
+                            ConstraintName = row["ConstraintName"]?.ToString() ?? string.Empty,
+                            ParentTable = row["ParentTable"]?.ToString() ?? string.Empty,
+                            ParentColumn = row["ParentColumn"]?.ToString() ?? string.Empty,
+                            ReferencedTable = row["ReferencedTable"]?.ToString() ?? string.Empty,
+                            ReferencedColumn = row["ReferencedColumn"]?.ToString() ?? string.Empty,
                         });
                     }
                 }
@@ -221,8 +221,8 @@ namespace DatabaseVisualizer.Services
                     {
                         relationshipMaps.Add(new RelationshipMap
                         {
-                            RelationshipType = row["RelationshipType"].ToString(),
-                            ConnectedTable = row["ConnectedTable"].ToString()
+                            RelationshipType = row["RelationshipType"]?.ToString() ?? string.Empty,
+                            ConnectedTable = row["ConnectedTable"]?.ToString() ?? string.Empty,
                         });
                     }
                 }
@@ -256,12 +256,34 @@ namespace DatabaseVisualizer.Services
             DateTime createDate = DateTime.MinValue;
             DateTime modifyDate = DateTime.MinValue;
 
-            if (defDt != null && defDt.Rows.Count > 0)
+            if (defDt is not null && defDt.Rows.Count > 0)
             {
-                // Check for DBNull and ENCRYPTED flag
-                definition = (defDt.Rows[0]["Definition"] != DBNull.Value) ? defDt.Rows[0]["Definition"].ToString() : "DEFINITION IS ENCRYPTED";
-                createDate = (defDt.Rows[0]["CreateDate"] != DBNull.Value) ? Convert.ToDateTime(defDt.Rows[0]["CreateDate"]) : DateTime.MinValue;
-                modifyDate = (defDt.Rows[0]["ModifyDate"] != DBNull.Value) ? Convert.ToDateTime(defDt.Rows[0]["ModifyDate"]) : DateTime.MinValue;
+                // Retrieve the raw object value for the definition
+                object definitionValue = defDt.Rows[0]["Definition"];
+
+                if (definitionValue is DBNull) // Check if the object is the specific DBNull sentinel
+                {
+                    // Value is null in the database, usually meaning the object is encrypted
+                    definition = "DEFINITION IS ENCRYPTED";
+                }
+                else
+                {
+                    // Value is present; convert it to string using the null-coalescing operator
+                    // to handle any unlikely reference null before assignment.
+                    definition = definitionValue.ToString() ?? "DEFINITION NOT FOUND";
+                }
+
+                // Date parsing logic (remains mostly the same, using null checks for safety)
+                object createDateValue = defDt.Rows[0]["CreateDate"];
+                object modifyDateValue = defDt.Rows[0]["ModifyDate"];
+
+                createDate = (createDateValue is not DBNull)
+                             ? Convert.ToDateTime(createDateValue)
+                             : DateTime.MinValue;
+
+                modifyDate = (modifyDateValue is not DBNull)
+                             ? Convert.ToDateTime(modifyDateValue)
+                             : DateTime.MinValue;
             }
 
             // 2. Get Parameters
@@ -281,8 +303,8 @@ namespace DatabaseVisualizer.Services
                 {
                     parameters.Add(new ProcedureParameter
                     {
-                        Name = row["Name"].ToString(),
-                        DataType = row["DataType"].ToString()
+                        Name = row["Name"]?.ToString() ?? string.Empty,
+                        DataType = row["DataType"]?.ToString() ?? string.Empty,
                     });
                 }
             }
@@ -302,19 +324,33 @@ namespace DatabaseVisualizer.Services
             {
                 string qualifiedName = $"[{schemaName}].[{objectName}]";
 
+                // 1. Safely retrieve the Object ID (The query must return only the ID)
+                string objectIdSql = $"SELECT OBJECT_ID('{qualifiedName}')";
+                object? objectIdResult = SqlConnectionManager.ExecuteScalar(objectIdSql);
+
+                // 2. Check if the ID is valid and not null
+                if (objectIdResult is null || objectIdResult is DBNull)
+                {
+                    // If the object is not found, we cannot run the dependency query.
+                    return new List<Dependency>();
+                }
+
+                // 3. Convert the object result to the correct integer type for filtering
+                int objectId = Convert.ToInt32(objectIdResult);
+
                 // Use the object_id of the procedure/function as the referencing entity
-                string sql = $@"
+                string sql = @"
                     SELECT
                         CASE 
-                            WHEN dep.referenced_class = 1 THEN 'Touches Table/View' 
-                            WHEN dep.referenced_class = 6 THEN 'Calls Stored Proc/Func'
+                            WHEN o_ref.type IN ('U', 'V') THEN 'Touches Table/View' 
+                            WHEN o_ref.type IN ('P', 'FN', 'IF', 'TF') THEN 'Calls Stored Proc/Func'
                             ELSE 'Other'
                         END AS Type,
                         QUOTENAME(s_ref.name) + '.' + QUOTENAME(o_ref.name) AS ObjectName
                     FROM sys.sql_expression_dependencies dep
                     INNER JOIN sys.objects o_ref ON dep.referenced_id = o_ref.object_id
                     INNER JOIN sys.schemas s_ref ON o_ref.schema_id = s_ref.schema_id
-                    WHERE dep.referencing_id = OBJECT_ID(@QualifiedName);";
+                    WHERE dep.referencing_id = OBJECT_ID(@QualifiedName);"; // Using object ID based on qualified name
 
                 var parameters = new Dictionary<string, object> { { "@QualifiedName", qualifiedName } };
                 DataTable dt = SqlConnectionManager.ExecuteQuery(sql, parameters);
@@ -326,8 +362,8 @@ namespace DatabaseVisualizer.Services
                     {
                         dependencies.Add(new Dependency
                         {
-                            Type = row["Type"].ToString(),
-                            ObjectName = row["ObjectName"].ToString()
+                            Type = row["Type"]?.ToString() ?? string.Empty,
+                            ObjectName = row["ObjectName"]?.ToString() ?? string.Empty,
                         });
                     }
                 }
@@ -380,8 +416,13 @@ namespace DatabaseVisualizer.Services
                         LoginTime = loginTime,
 
                         // Handle DBNull for nullable fields
-                        Status = (row["Status"] != DBNull.Value) ? row["Status"].ToString() : "SLEEPING",
-                        Command = (row["Command"] != DBNull.Value) ? row["Command"].ToString() : "NONE",
+                        Status = (row["Status"] is not DBNull)
+                             ? row["Status"]?.ToString() ?? "N/A"
+                             : "SLEEPING",
+
+                        Command = (row["Command"] is not DBNull)
+                              ? row["Command"]?.ToString() ?? "N/A"
+                              : "NONE",
 
                         // If StartTime is null (sleeping session), use LoginTime
                         StartTime = (row["StartTime"] != DBNull.Value) ? Convert.ToDateTime(row["StartTime"]) : loginTime
@@ -414,17 +455,27 @@ namespace DatabaseVisualizer.Services
                 DataTable dt = SqlConnectionManager.ExecuteQuery(sql);
                 var queries = new List<LongRunningQuery>();
 
-                if (dt != null)
+                if (dt is not null)
                 {
                     foreach (DataRow row in dt.Rows)
                     {
+                        // 1. Safely retrieve the raw SQL statement object (can be DBNull)
+                        object sqlObj = row["SqlStatement"];
+
+                        // 2. Convert to string, or default to "N/A" if NULL/DBNull is found.
+                        string fullSql = (sqlObj is DBNull) ? "N/A" : sqlObj.ToString() ?? "N/A";
+
+                        // 3. Perform safe truncation: Math.Min ensures we don't try to exceed the string length.
+                        string truncatedSql = fullSql.Substring(0, Math.Min(fullSql.Length, 500));
+
                         queries.Add(new LongRunningQuery
                         {
                             SessionId = Convert.ToInt16(row["SessionId"]),
                             Status = row["Status"]?.ToString() ?? "N/A",
                             CommandDurationSeconds = Convert.ToInt32(row["DurationSeconds"]),
-                            // Get the SQL statement, trimming excessive length if necessary
-                            SqlStatement = row["SqlStatement"]?.ToString().Substring(0, Math.Min(row["SqlStatement"].ToString().Length, 500)) ?? "N/A"
+
+                            // Assign the safely truncated string
+                            SqlStatement = truncatedSql
                         });
                     }
                 }
@@ -444,22 +495,22 @@ namespace DatabaseVisualizer.Services
             {
                 // T-SQL to retrieve missing index details and performance impact metrics
                 string sql = @"
-            SELECT TOP 10
-                DB_NAME(d.database_id) AS DatabaseName,
-                s.name AS SchemaName,
-                OBJECT_NAME(d.object_id) AS TableName,
-                d.equality_columns AS EqualityColumns,
-                d.inequality_columns AS InequalityColumns,
-                d.included_columns AS IncludedColumns,
-                -- Calculates the score (impact * searches * updates) and orders by it
-                -- The average user impact is the estimated percentage improvement
-                gs.avg_user_impact AS AvgUserImpact
-            FROM sys.dm_db_missing_index_details d
-            INNER JOIN sys.dm_db_missing_index_groups g ON d.index_handle = g.index_handle
-            INNER JOIN sys.dm_db_missing_index_group_stats gs ON g.index_group_handle = gs.group_handle
-            INNER JOIN sys.schemas s ON d.schema_id = s.schema_id
-            WHERE d.database_id = DB_ID() -- Filter to the current database
-            ORDER BY AvgUserImpact DESC;";
+                    SELECT TOP 10
+                        DB_NAME(d.database_id) AS DatabaseName,
+                        s.name AS SchemaName,
+                        OBJECT_NAME(d.object_id) AS TableName,
+                        d.equality_columns AS EqualityColumns,
+                        d.inequality_columns AS InequalityColumns,
+                        d.included_columns AS IncludedColumns,
+                        -- Calculates the score (impact * searches * updates) and orders by it
+                        -- The average user impact is the estimated percentage improvement
+                        gs.avg_user_impact AS AvgUserImpact
+                    FROM sys.dm_db_missing_index_details d
+                    INNER JOIN sys.dm_db_missing_index_groups g ON d.index_handle = g.index_handle
+                    INNER JOIN sys.dm_db_missing_index_group_stats gs ON g.index_group_handle = gs.group_handle
+                    INNER JOIN sys.schemas s ON d.schema_id = s.schema_id
+                    WHERE d.database_id = DB_ID() -- Filter to the current database
+                    ORDER BY AvgUserImpact DESC;";
 
                 DataTable dt = SqlConnectionManager.ExecuteQuery(sql);
                 var indexes = new List<MissingIndex>();
@@ -607,17 +658,30 @@ namespace DatabaseVisualizer.Services
                 DataTable dt = SqlConnectionManager.ExecuteQuery(sql);
                 var metrics = new List<CachedQueryMetric>();
 
-                if (dt != null)
+                if (dt is not null)
                 {
                     foreach (DataRow row in dt.Rows)
                     {
+                        // Safely retrieve the query statement object (can be DBNull)
+                        object queryStatementObj = row["QueryStatement"];
+
+                        // Convert to string, or default to string.Empty if DBNull/Null is found.
+                        string fullQueryStatement = (queryStatementObj is DBNull)
+                                                    ? string.Empty
+                                                    : queryStatementObj.ToString() ?? string.Empty;
+
+                        // Trim the whitespace from the resulting string.
+                        string trimmedStatement = fullQueryStatement.Trim();
+
                         metrics.Add(new CachedQueryMetric
                         {
                             ExecutionCount = Convert.ToInt64(row["ExecutionCount"]),
                             TotalCPUTimeMS = (Convert.ToInt64(row["TotalCPUTime"]) / 1000).ToString("N0"),
                             TotalLogicalReads = Convert.ToInt64(row["TotalLogicalReads"]).ToString("N0"),
                             AvgCPUTimeMS = (Convert.ToInt64(row["AvgCPUTime"]) / 1000).ToString("N0"),
-                            QueryStatement = row["QueryStatement"]?.ToString().Trim() ?? "N/A"
+
+                            // Assign the safely retrieved and trimmed string
+                            QueryStatement = trimmedStatement
                         });
                     }
                 }
@@ -676,24 +740,30 @@ namespace DatabaseVisualizer.Services
         {
             try
             {
-                // T-SQL to find fragmented indexes (> 5% fragmentation and > 1000 pages)
                 string sql = @"
-                SELECT 
-                    QUOTENAME(s.name) + '.' + QUOTENAME(t.name) AS TableName,
-                    i.name AS IndexName,
-                    ps.avg_fragmentation_in_percent AS FragmentationPercent,
-                    ps.page_count AS PageCount,
-                    CASE 
-                        WHEN ps.avg_fragmentation_in_percent > 30 THEN 'REBUILD (CRITICAL)'
-                        WHEN ps.avg_fragmentation_in_percent > 5 THEN 'REORGANIZE'
-                        ELSE 'OK'
-                    END AS MaintenanceAction
-                FROM sys.dm_db_index_physical_stats(DB_ID(), NULL, NULL, NULL, 'LIMITED') ps
-                INNER JOIN sys.tables t ON ps.object_id = t.object_id
-                INNER JOIN sys.schemas s ON t.schema_id = s.schema_id
-                INNER JOIN sys.indexes i ON ps.object_id = i.object_id AND ps.index_id = i.index_id
-                WHERE ps.avg_fragmentation_in_percent > 5 AND ps.page_count > 1000
-                ORDER BY ps.avg_fragmentation_in_percent DESC;";
+                    SELECT
+                        OBJECT_SCHEMA_NAME(ips.object_id) AS SchemaName,
+                        OBJECT_NAME(ips.object_id) AS TableName,
+                        si.name AS IndexName,
+                        ips.avg_fragmentation_in_percent,
+                        ips.page_count,
+                        CASE
+                            WHEN ips.avg_fragmentation_in_percent >= 30 THEN 'REBUILD (CRITICAL)'
+                            WHEN ips.avg_fragmentation_in_percent > 5 AND ips.avg_fragmentation_in_percent < 30 THEN 'REORGANIZE'
+                            ELSE 'OK'
+                        END AS MaintenanceAction
+                    FROM
+                        sys.dm_db_index_physical_stats(DB_ID(), NULL, NULL, NULL, 'LIMITED') AS ips
+                    INNER JOIN
+                        sys.indexes AS si ON ips.object_id = si.object_id AND ips.index_id = si.index_id
+                    WHERE
+                        ips.index_id > 0 
+                        AND ips.page_count > 8 
+                        -- CRITICAL FIX: Ensure the object name is resolvable and the index name is not null.
+                        AND OBJECT_NAME(ips.object_id) IS NOT NULL 
+                        AND si.name IS NOT NULL 
+                    ORDER BY
+                        OBJECT_NAME(ips.object_id), ips.avg_fragmentation_in_percent DESC;";
 
                 DataTable dt = SqlConnectionManager.ExecuteQuery(sql);
                 var fragList = new List<IndexFragmentation>();
@@ -702,40 +772,32 @@ namespace DatabaseVisualizer.Services
                 {
                     foreach (DataRow row in dt.Rows)
                     {
-                        double fragmentationPercent = (row["FragmentationPercent"] != DBNull.Value) ? Convert.ToDouble(row["FragmentationPercent"]) : 0.0;
+                        string schemaName = row["SchemaName"]?.ToString() ?? "dbo";
+                        string tableName = row["TableName"]?.ToString() ?? "N/A";
+                        string indexName = row["IndexName"]?.ToString() ?? "N/A";
+                        string action = row["MaintenanceAction"]?.ToString() ?? "OK";
+                        double fragmentationPercent = Convert.ToDouble(row["avg_fragmentation_in_percent"]);
 
-                        string action;
-                        string script;
+                        string script = "N/A";
 
-                        if (fragmentationPercent > 30)
+                        if (action.Contains("REBUILD"))
                         {
-                            action = "REBUILD (CRITICAL)";
-                            // NOTE: Use the full qualified name for DDL safety
-                            string fullTableName = row["TableName"]?.ToString() ?? "N/A";
-                            string indexName = row["IndexName"]?.ToString() ?? "N/A";
-                            script = $"ALTER INDEX {indexName} ON {fullTableName} REBUILD WITH (ONLINE = ON);";
+                            // Full DDL command construction
+                            script = $"ALTER INDEX [{indexName}] ON [{schemaName}].[{tableName}] REBUILD WITH (ONLINE = (ON), SORT_IN_TEMPDB = ON);";
                         }
-                        else if (fragmentationPercent > 5)
+                        else if (action.Contains("REORGANIZE"))
                         {
-                            action = "REORGANIZE";
-                            string fullTableName = row["TableName"]?.ToString() ?? "N/A";
-                            string indexName = row["IndexName"]?.ToString() ?? "N/A";
-                            script = $"ALTER INDEX {indexName} ON {fullTableName} REORGANIZE;";
-                        }
-                        else
-                        {
-                            action = "OK (No Action)";
-                            script = "N/A";
+                            script = $"ALTER INDEX [{indexName}] ON [{schemaName}].[{tableName}] REORGANIZE;";
                         }
 
                         fragList.Add(new IndexFragmentation
                         {
-                            TableName = row["TableName"]?.ToString() ?? "N/A",
-                            IndexName = row["IndexName"]?.ToString() ?? "N/A",
-                            FragmentationPercent = Convert.ToDouble(row["FragmentationPercent"]),
-                            PageCount = Convert.ToInt64(row["PageCount"]),
-                            MaintenanceAction = action, // <<< This populates the button text
-                            MaintenanceScript = script  // <<< This is the executable command   
+                            SchemaTableName = $"[{schemaName}].[{tableName}]",
+                            IndexName = indexName,
+                            FragmentationPercent = fragmentationPercent,
+                            PageCount = Convert.ToInt64(row["page_count"]),
+                            MaintenanceAction = action,
+                            MaintenanceScript = script
                         });
                     }
                 }
@@ -754,31 +816,46 @@ namespace DatabaseVisualizer.Services
             {
                 // T-SQL to find sessions currently being blocked
                 string sql = @"
-            SELECT 
-                r.session_id AS SessionId,
-                r.blocking_session_id AS BlockingSessionId,
-                r.wait_time AS WaitTimeMS,
-                r.wait_type AS WaitType,
-                t.text AS BlockedCommand
-            FROM sys.dm_exec_requests r
-            CROSS APPLY sys.dm_exec_sql_text(r.sql_handle) t
-            WHERE r.blocking_session_id <> 0 -- Find only blocked sessions
-            ORDER BY r.wait_time DESC;";
+                    SELECT 
+                        r.session_id AS SessionId,
+                        r.blocking_session_id AS BlockingSessionId,
+                        r.wait_time AS WaitTimeMS,
+                        r.wait_type AS WaitType,
+                        t.text AS BlockedCommand
+                    FROM sys.dm_exec_requests r
+                    CROSS APPLY sys.dm_exec_sql_text(r.sql_handle) t
+                    WHERE r.blocking_session_id <> 0 -- Find only blocked sessions
+                    ORDER BY r.wait_time DESC;";
 
                 DataTable dt = SqlConnectionManager.ExecuteQuery(sql);
                 var blockingList = new List<BlockingProcess>();
 
-                if (dt != null)
+                if (dt is not null)
                 {
                     foreach (DataRow row in dt.Rows)
                     {
+                        // Safely retrieve the raw BlockedCommand object (can be DBNull)
+                        object blockedCommandObj = row["BlockedCommand"];
+
+                        // Convert to string, or default to "" if DBNull/Null is found.
+                        string fullBlockedCommand = (blockedCommandObj is DBNull)
+                                                    ? string.Empty
+                                                    : blockedCommandObj.ToString() ?? string.Empty;
+
+                        // Trim the whitespace from the resulting string.
+                        string trimmedCommand = fullBlockedCommand.Trim();
+
                         blockingList.Add(new BlockingProcess
                         {
                             SessionId = Convert.ToInt16(row["SessionId"]),
                             BlockingSessionId = Convert.ToInt16(row["BlockingSessionId"]),
                             WaitTimeMS = Convert.ToInt32(row["WaitTimeMS"]),
+
+                            // WaitType is often N/A or a short code, use null-coalescing
                             WaitType = row["WaitType"]?.ToString() ?? "N/A",
-                            BlockedCommand = row["BlockedCommand"]?.ToString().Trim() ?? "N/A"
+
+                            // Assign the safely retrieved and trimmed string
+                            BlockedCommand = trimmedCommand
                         });
                     }
                 }

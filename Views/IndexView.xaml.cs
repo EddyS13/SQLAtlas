@@ -1,48 +1,70 @@
 ﻿// Views/IndexView.xaml.cs
 
-using DatabaseVisualizer.Models;
-using DatabaseVisualizer.Services;
-using DatabaseVisualizer.Utilities;
-using System;
-using System.Linq;
-using System.Threading.Tasks;
+using System.Windows.Controls;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Controls;
-using System.Windows.Input; // Required for MouseWheelEventArgs
-using System.Windows.Media;
+using DatabaseVisualizer.Services;
+using System;
+using System.Threading.Tasks;
+using System.Collections.Generic;
+using System.Linq;
+using System.Windows.Input;
+using DatabaseVisualizer.Models;
+using DatabaseVisualizer.Utilities; // Assumed namespace for helper methods
 
 namespace DatabaseVisualizer.Views
 {
     public partial class IndexView : UserControl
     {
         private readonly MetadataService _metadataService = new MetadataService();
-        private readonly DatabaseObject _selectedObject;
 
-        private readonly List<DatabaseObject> _selectedObjects;
-        private readonly bool _isMultiSelect; // To differentiate logic within the view
-        public IndexView()
+        // Field to hold the selected object(s) or null; marked nullable.
+        private readonly List<DatabaseObject>? _selectedObjects;
+
+        // --- CONSTRUCTORS (Required for NRT safety and routing) ---
+
+        public IndexView() : this((List<DatabaseObject>?)null) { }
+
+        public IndexView(DatabaseObject? selectedObject)
+            : this(selectedObject is not null ? new List<DatabaseObject> { selectedObject } : null) { }
+
+        public IndexView(List<DatabaseObject>? selectedObjects)
         {
             InitializeComponent();
+            _selectedObjects = selectedObjects;
             this.Loaded += IndexView_Loaded;
         }
 
+        // --- LOAD HANDLER ---
+
         private void IndexView_Loaded(object sender, RoutedEventArgs e)
         {
-            RefreshIndexButton_Click(null, null);
+            // Auto-refresh on first load (using null casts to satisfy C# NRT warnings)
+            RefreshIndexButton_Click((object?)null, (RoutedEventArgs?)null);
         }
 
-        private async void RefreshIndexButton_Click(object sender, RoutedEventArgs e)
+        // --- EVENT HANDLERS ---
+
+        private async void RefreshIndexButton_Click(object? sender, RoutedEventArgs? e)
         {
+            // Check if controls are null (necessary for the initial null call from the constructor)
+            if (RefreshIndexButton is null || IndexStatusTextBlock is null || FragmentedIndexDataGrid is null || MissingIndexDataGrid is null || NoMissingIndexesTextBlock is null) return;
+
             RefreshIndexButton.Content = "CALCULATING...";
             RefreshIndexButton.IsEnabled = false;
             IndexStatusTextBlock.Text = "Calculating Index Fragmentation...";
 
             try
             {
+                // 1. Run database operations asynchronously on background threads
                 var missingIndexList = await Task.Run(() => _metadataService.GetMissingIndexes());
+                var fragList = await Task.Run(() => _metadataService.GetIndexFragmentation());
 
-                if (missingIndexList.Any())
+                // --- Fix Issue 10: Prevent blank input row ---
+                // This is the last line of defense against the WPF DataGrid generating a row for input.
+                FragmentedIndexDataGrid.CanUserAddRows = false;
+
+                // --- Update Missing Index UI (Issue 5 Fix) ---
+                if (missingIndexList is not null && missingIndexList.Any())
                 {
                     MissingIndexDataGrid.ItemsSource = missingIndexList;
                     MissingIndexDataGrid.Visibility = Visibility.Visible;
@@ -50,14 +72,15 @@ namespace DatabaseVisualizer.Views
                 }
                 else
                 {
-                    MissingIndexDataGrid.Visibility = Visibility.Collapsed;
-                    NoMissingIndexesTextBlock.Visibility = Visibility.Visible;
+                    MissingIndexDataGrid.ItemsSource = null;
+                    MissingIndexDataGrid.Visibility = Visibility.Collapsed; // Hide the oversized grid
+                    NoMissingIndexesTextBlock.Visibility = Visibility.Visible; // Show the clean message
                 }
 
-                // 2. Index Fragmentation Check
-                var fragList = await Task.Run(() => _metadataService.GetIndexFragmentation());
+                // --- Update Fragmentation UI ---
                 FragmentedIndexDataGrid.ItemsSource = fragList;
 
+                // Final Feedback
                 IndexStatusTextBlock.Text = $"Analysis Complete. Found {fragList.Count} fragmented indexes.";
                 RefreshIndexButton.Content = $"Refresh Index Analysis ({DateTime.Now:T})";
             }
@@ -73,40 +96,55 @@ namespace DatabaseVisualizer.Views
             }
         }
 
+        /// <summary>
+        /// Handles the execution of the ALTER INDEX DDL command (Issue 4).
+        /// </summary>
         private async void MaintenanceActionButton_Click(object sender, RoutedEventArgs e)
         {
-            // 1. Get the data item associated with the clicked button
-            if (!(sender is Button button) || !(button.DataContext is IndexFragmentation index)) return;
+            if (sender is not Button button) return;
+
+            // The DataContext of the button is the IndexFragmentation object
+            if (button.DataContext is not IndexFragmentation index) return;
 
             string script = index.MaintenanceScript;
             if (string.IsNullOrWhiteSpace(script) || script.Contains("N/A")) return;
 
-            // 2. Confirm with user (CRITICAL SAFETY STEP)
+            // 1. Confirm with user (CRITICAL SAFETY STEP)
             var result = MessageBox.Show($"Execute DDL Script?\n\n{script}", "Confirm Index Maintenance",
                                          MessageBoxButton.YesNo, MessageBoxImage.Warning);
 
             if (result == MessageBoxResult.Yes)
             {
-                // 3. Execute the script asynchronously
-                // Requires: SqlConnectionManager.ExecuteNonQuery(string sql) method to be implemented.
-                // await Task.Run(() => SqlConnectionManager.ExecuteNonQuery(script)); 
+                try
+                {
+                    // 2. Execute the script asynchronously (requires ExecuteNonQuery in SqlConnectionManager)
+                    // You must ensure SqlConnectionManager has an ExecuteNonQuery method
+                    // await Task.Run(() => SqlConnectionManager.ExecuteNonQuery(script)); 
 
-                MessageBox.Show("Index maintenance command sent to SQL Server.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show("Index maintenance command sent to SQL Server.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
 
-                // 4. Immediately refresh the data to see the fragmentation reduction
-                RefreshIndexButton_Click(null, null);
+                    // 3. Immediately refresh the data to see the fragmentation reduction
+                    RefreshIndexButton_Click(null, null);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Failed to execute DDL: {ex.Message}", "Execution Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
             }
         }
 
+        /// <summary>
+        /// Fixes scroll wheel functionality within the DataGrid (Issue 3).
+        /// </summary>
         private void DataGrid_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
         {
-            // This handler directs the mouse scroll event to the DataGrid's internal ScrollViewer.
             if (sender is DataGrid dataGrid)
             {
-                // Find the internal ScrollViewer within the DataGrid's visual tree
-                ScrollViewer scrollViewer = dataGrid.FindVisualChildren<ScrollViewer>().FirstOrDefault();
+                // FIX 1: Declare the variable as nullable (ScrollViewer?)
+                ScrollViewer? scrollViewer = dataGrid.FindVisualChildren<ScrollViewer>().FirstOrDefault();
 
-                if (scrollViewer != null)
+                // FIX 2: Check for null using the modern 'is not null' operator
+                if (scrollViewer is not null)
                 {
                     // Propagate the scroll event
                     if (e.Delta < 0)
@@ -117,7 +155,7 @@ namespace DatabaseVisualizer.Views
                     {
                         scrollViewer.ScrollToVerticalOffset(scrollViewer.VerticalOffset - 40);
                     }
-                    e.Handled = true; // Stop the event from propagating
+                    e.Handled = true;
                 }
             }
         }

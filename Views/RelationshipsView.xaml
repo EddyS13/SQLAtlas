@@ -6,19 +6,39 @@
              xmlns:local="clr-namespace:DatabaseVisualizer.Views"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800">
+    
     <Grid>
-        <StackPanel Margin="10">
 
-            <TextBlock Text="Table Mapping (Related Tables)" FontWeight="Bold" Margin="0,0,0,5"/>
-            <DataGrid x:Name="TableRelationshipGrid" Height="200" HeadersVisibility="Column"/>
+        <StackPanel DockPanel.Dock="Top" Margin="0,0,0,15">
 
-            <Separator Margin="0,15" Background="{StaticResource BorderColor}"/>
+            <TextBlock Text="Table Mapping (Related Tables)" 
+                FontWeight="Bold"
+                Margin="0,0,0,5"/>
+            
+            <DataGrid x:Name="TableRelationshipGrid" 
+                Height="Auto" 
+                CanUserAddRows="False"
+                HeadersVisibility="Column"/>
 
-            <TextBlock Text="Foreign Keys Between Selected Tables (Max 2)" FontWeight="Bold" Margin="0,0,0,5"/>
-            <TextBlock x:Name="TwoTableSelectionHint" Text="Select exactly two tables (Ctrl+Click) to see direct foreign keys." FontStyle="Italic" Foreground="{StaticResource FontColor}"/>
+            <Separator Margin="0,15" 
+                Background="{StaticResource BorderColor}"/>
 
-            <DataGrid x:Name="ForeignKeyGrid" HeadersVisibility="Column"/>
+            <TextBlock Text="Foreign Keys Between Selected Tables (Max 2)" 
+                FontWeight="Bold" 
+                Margin="0,0,0,5"/>
+            
+            <TextBlock x:Name="TwoTableSelectionHint" 
+                Text="Select exactly two tables (Ctrl+Click) to see direct foreign keys." 
+                FontStyle="Italic" 
+                Foreground="{StaticResource FontColor}"/>
+
+            <DataGrid x:Name="ForeignKeyGrid" 
+                CanUserAddRows="False"
+                Height="Auto"
+                HeadersVisibility="Column"/>
 
         </StackPanel>
+
     </Grid>
+    
 </UserControl>

@@ -9,7 +9,8 @@
         <SolidColorBrush x:Key="PaneBackground" Color="#1565C0"/>
         <SolidColorBrush x:Key="FontColor" Color="#F0F0F0"/>
         <SolidColorBrush x:Key="BorderColor" Color="#2962FF"/>
-        <SolidColorBrush x:Key="HighlightColor" Color="#42A5F5"/>
+        <SolidColorBrush x:Key="HighlightColor" Color="#1E88E5"/>
+        <SolidColorBrush x:Key="CodeBackground" Color="#FAFAFA"/>
 
         <Style TargetType="{x:Type Window}">
             <Setter Property="Background" Value="{StaticResource WindowBackground}"/>

@@ -9,9 +9,9 @@ namespace DatabaseVisualizer.Models
     public class CachedQueryMetric
     {
         public long ExecutionCount { get; set; }
-        public string TotalCPUTimeMS { get; set; }
-        public string TotalLogicalReads { get; set; }
-        public string AvgCPUTimeMS { get; set; }
-        public string QueryStatement { get; set; }
+        public string TotalCPUTimeMS { get; set; } = string.Empty;
+        public string TotalLogicalReads { get; set; } = string.Empty;
+        public string AvgCPUTimeMS { get; set; } = string.Empty;
+        public string QueryStatement { get; set; } = string.Empty;
     }
 }

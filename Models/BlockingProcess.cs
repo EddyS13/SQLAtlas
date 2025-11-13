@@ -11,7 +11,7 @@ namespace DatabaseVisualizer.Models
         public short SessionId { get; set; }
         public short BlockingSessionId { get; set; }
         public int WaitTimeMS { get; set; }
-        public string WaitType { get; set; }
-        public string BlockedCommand { get; set; }
+        public string WaitType { get; set; } = string.Empty;
+        public string BlockedCommand { get; set; } = string.Empty;
     }
 }

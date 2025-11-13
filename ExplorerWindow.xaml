@@ -13,70 +13,143 @@
         ResizeMode="CanResizeWithGrip">
 
     <Window.Resources>
+        
         <Style TargetType="{x:Type DataGridColumnHeader}">
-            <Setter Property="Background" Value="{StaticResource WindowBackground}"/>
-            <Setter Property="Foreground" Value="{StaticResource FontColor}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource BorderColor}"/>
-            <Setter Property="BorderThickness" Value="0,0,0,1"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Padding" Value="5,4,5,4"/>
+            
+            <Setter Property="Background" 
+                Value="{StaticResource WindowBackground}"/>
+            
+            <Setter Property="Foreground" 
+                Value="{StaticResource FontColor}"/>
+            
+            <Setter Property="BorderBrush" 
+                Value="{StaticResource BorderColor}"/>
+            
+            <Setter Property="BorderThickness" 
+                Value="0,0,0,1"/>
+            
+            <Setter Property="FontWeight" 
+                Value="SemiBold"/>
+            
+            <Setter Property="Padding" 
+                Value="5,4,5,4"/>
+            
         </Style>
 
         <Style TargetType="{x:Type TabItem}">
-            <Setter Property="Padding" Value="10,5"/>
-            <Setter Property="Foreground" Value="{StaticResource FontColor}"/>
-            <Setter Property="Background" Value="{StaticResource PaneBackground}"/>
+            
+            <Setter Property="Padding" 
+                Value="10,5"/>
+            
+            <Setter Property="Foreground" 
+                Value="{StaticResource FontColor}"/>
+            
+            <Setter Property="Background" 
+                Value="{StaticResource PaneBackground}"/>
+            
             <Style.Triggers>
-                <Trigger Property="IsSelected" Value="True">
-                    <Setter Property="FontWeight" Value="Bold"/>
-                    <Setter Property="BorderBrush" Value="{StaticResource AccentColor}"/>
-                    <Setter Property="BorderThickness" Value="0,0,0,3"/>
-                    <Setter Property="Foreground" Value="White"/>
-                    <Setter Property="Background" Value="{StaticResource HighlightColor}"/>
+                
+                <Trigger Property="IsSelected" 
+                    Value="True">
+                    
+                    <Setter Property="FontWeight" 
+                        Value="Bold"/>
+                    
+                    <Setter Property="BorderBrush" 
+                        Value="{StaticResource AccentColor}"/>
+                    
+                    <Setter Property="BorderThickness" 
+                        Value="0,0,0,3"/>
+                    
+                    <Setter Property="Foreground" 
+                        Value="White"/>
+                    
+                    <Setter Property="Background" 
+                        Value="{StaticResource HighlightColor}"/>
+                    
                 </Trigger>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="{StaticResource BorderColor}"/>
+                
+                <Trigger Property="IsMouseOver" 
+                    Value="True">
+                    
+                    <Setter Property="Background"
+                        Value="{StaticResource BorderColor}"/>
+                    
                 </Trigger>
+                
             </Style.Triggers>
+            
         </Style>
 
         <Style TargetType="{x:Type ListBoxItem}">
-            <Setter Property="Background" Value="{StaticResource WindowBackground}"/>
-            <Setter Property="Foreground" Value="{StaticResource FontColor}"/>
-            <Setter Property="Padding" Value="5,8"/>
-            <Setter Property="BorderThickness" Value="0"/>
+            
+            <Setter Property="Background" 
+                Value="{StaticResource WindowBackground}"/>
+            
+            <Setter Property="Foreground" 
+                Value="{StaticResource FontColor}"/>
+            
+            <Setter Property="Padding" 
+                Value="5,8"/>
+            
+            <Setter Property="BorderThickness" 
+                Value="0"/>
 
             <Style.Triggers>
-                <Trigger Property="IsSelected" Value="True">
-                    <Setter Property="Background" Value="{StaticResource AccentColor}"/>
-                    <Setter Property="Foreground" Value="White"/>
+
+                <Trigger Property="IsSelected" 
+                Value="True">
+                    
+                    <Setter Property="Background" 
+                        Value="{StaticResource AccentColor}"/>
+                    
+                    <Setter Property="Foreground" 
+                        Value="White"/>
+                    
                 </Trigger>
 
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="{StaticResource HighlightColor}"/>
-                    <Setter Property="Foreground" Value="{StaticResource AccentColor}"/>
+                <Trigger Property="IsMouseOver" 
+                    Value="True">
+                    
+                    <Setter Property="Background" 
+                        Value="{StaticResource HighlightColor}"/>
+
+                    <Setter Property="Foreground" 
+                        Value="White"/>
+                    
                 </Trigger>
+
             </Style.Triggers>
+            
         </Style>
+        
     </Window.Resources>
 
     <DockPanel>
+        
         <Border DockPanel.Dock="Top" 
-        Background="{StaticResource PaneBackground}" 
-        BorderBrush="{StaticResource BorderColor}" 
-        BorderThickness="0,0,0,1" 
-        Padding="10">
+            Background="{StaticResource PaneBackground}" 
+            BorderBrush="{StaticResource BorderColor}" 
+            BorderThickness="0,0,0,1" 
+            Height="70"  
+            Padding="0"
+            MouseLeftButtonDown="WindowHeader_MouseLeftButtonDown">
 
             <Grid Height="50" Margin="10,0,10,0">
+                
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Left">
+                <StackPanel Grid.Column="0" 
+                    Orientation="Horizontal" 
+                    VerticalAlignment="Center" 
+                    HorizontalAlignment="Left">
+                    
                     <Image Source="/DatabaseVisualizer;component/Images/Database Visualizer Logo.png" 
-                   Width="50" Height="50" Margin="0,0,8,0"
-                   RenderOptions.BitmapScalingMode="HighQuality"/>
+                       Width="50" Height="50" Margin="0,0,8,0"
+                       RenderOptions.BitmapScalingMode="HighQuality"/>
 
                     <TextBlock Text="DATABASE VISUALIZER" 
                        Foreground="{StaticResource AccentColor}" 
@@ -86,157 +159,250 @@
                        VerticalAlignment="Center"/>
                 </StackPanel>
 
-                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <StackPanel Grid.Column="1" 
+                    Orientation="Horizontal" 
+                    HorizontalAlignment="Right" 
+                    VerticalAlignment="Center">
 
                     <Button Content="Disconnect" 
-                    Click="DisconnectButton_Click" 
-                    Width="100"
-                    Margin="0,0,15,0"/>
+                        Click="DisconnectButton_Click" 
+                        Width="100"
+                        Margin="0,0,15,0"/>
 
-                    <Button Content="—" Click="MinimizeButton_Click" Width="30" Height="30" Style="{StaticResource SystemButtonStyle}"/>
-                    <Button Content="☐" Click="MaximizeRestoreButton_Click" Width="30" Height="30" Margin="5,0" Style="{StaticResource SystemButtonStyle}"/>
-                    <Button Content="✕" Click="CloseButton_Click" Width="30" Height="30" Style="{StaticResource SystemButtonStyle}"/>
+                    <Button Content="—" 
+                        Click="MinimizeButton_Click" 
+                        Width="30" 
+                        Height="30" 
+                        Style="{StaticResource SystemButtonStyle}"/>
+                    
+                    <Button Content="☐" 
+                        Click="MaximizeRestoreButton_Click" 
+                        Width="30" 
+                        Height="30" 
+                        Margin="5,0" 
+                        Style="{StaticResource SystemButtonStyle}"/>
+                    
+                    <Button Content="✕" 
+                        Click="CloseButton_Click" 
+                        Width="30" 
+                        Height="30" 
+                        Style="{StaticResource SystemButtonStyle}"/>
+                    
                 </StackPanel>
+                
             </Grid>
+            
         </Border>
 
-        <StatusBar DockPanel.Dock="Bottom" Background="{StaticResource WindowBackground}" BorderBrush="{StaticResource BorderColor}" BorderThickness="0,1,0,0">
+        <StatusBar DockPanel.Dock="Bottom" 
+            Background="{StaticResource WindowBackground}" 
+            BorderBrush="{StaticResource BorderColor}" 
+            BorderThickness="0,1,0,0">
 
             <StatusBarItem>
+                
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock FontWeight="Bold" Text="Connection: "/>
-                    <TextBlock x:Name="ConnectionInfoTextBlock" Text="Not Connected"/>
+                    
+                    <TextBlock FontWeight="Bold" 
+                        Text="Connection: "/>
+                    
+                    <TextBlock x:Name="ConnectionInfoTextBlock" 
+                        Text="Not Connected"/>
+                    
                 </StackPanel>
+                
             </StatusBarItem>
 
             <StatusBarItem HorizontalAlignment="Right">
+                
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="Version: " Margin="10,0"/>
-                    <TextBlock x:Name="VersionNumberTextBlock" Text="v0.7.1" Foreground="{StaticResource AccentColor}"/>
+                    
+                    <TextBlock Text="Version: " 
+                        Margin="10,0"/>
+                    
+                    <TextBlock x:Name="VersionNumberTextBlock" 
+                        Text="v0.7.1" 
+                        Foreground="{StaticResource AccentColor}"/>
+                    
                     <TextBlock Text=" (" Margin="5,0,0,0"/>
-                    <TextBlock x:Name="VersionDateTextBlock" Text="2025-11-08" Margin="0,0,5,0"/>
+                    
+                    <TextBlock x:Name="VersionDateTextBlock" 
+                        Text="2025-11-08" 
+                        Margin="0,0,5,0"/>
+                    
                     <TextBlock Text=")"/>
+                    
                 </StackPanel>
+                
             </StatusBarItem>
 
         </StatusBar>
 
         <Grid Background="{StaticResource WindowBackground}">
+            
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="350"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
             <Border Grid.Column="0" 
-                    Background="{StaticResource WindowBackground}" 
-                    BorderBrush="{StaticResource BorderColor}" 
-                    BorderThickness="0,0,1,0" 
-                    Padding="15">
+                Background="{StaticResource WindowBackground}" 
+                BorderBrush="{StaticResource BorderColor}" 
+                BorderThickness="0,0,1,0" 
+                Padding="15">
 
                 <DockPanel>
                     <TextBlock Text="DIAGNOSTIC TOOLS" 
-                       FontWeight="SemiBold" 
-                       FontSize="14" 
-                       DockPanel.Dock="Top" 
-                       Margin="0,0,0,5"/>
+                        FontWeight="SemiBold" 
+                        FontSize="14" 
+                        DockPanel.Dock="Top" 
+                        Margin="0,0,0,5"/>
+                    
                     <ListBox x:Name="ToolsListBox" 
-                         DockPanel.Dock="Top" 
-                         SelectionMode="Single" 
-                         SelectionChanged="ToolsListBox_SelectionChanged" 
-                         Margin="0,0,0,10"/>
+                        DockPanel.Dock="Top" 
+                        SelectionMode="Single" 
+                        SelectionChanged="ToolsListBox_SelectionChanged" 
+                        Margin="0,0,0,10"/>
 
                     <TextBlock Text="SCHEMA OBJECTS" 
-                       FontWeight="SemiBold" 
-                       FontSize="14" 
-                       DockPanel.Dock="Top" 
-                       Margin="0,15,0,5"/> 
+                        FontWeight="SemiBold" 
+                        FontSize="14" 
+                        DockPanel.Dock="Top" 
+                        Margin="0,15,0,5"/> 
 
                     <Grid DockPanel.Dock="Top" Margin="0,0,0,10">
+                        
                         <TextBox x:Name="SearchTextBox" 
-                             Padding="25,5,5,5" 
-                             TextChanged="SearchTextBox_TextChanged"
-                             FontFamily="Segoe UI"/>
+                            Padding="25,5,5,5" 
+                            TextChanged="SearchTextBox_TextChanged"
+                            FontFamily="Segoe UI"/>
 
                         <TextBlock Text="🔍" 
-                               Foreground="{StaticResource BorderColor}" 
-                               VerticalAlignment="Center" 
-                               HorizontalAlignment="Left" 
-                               Margin="5,0,0,0" 
-                               IsHitTestVisible="False" 
-                               FontSize="14"/>
+                            Foreground="{StaticResource BorderColor}" 
+                            VerticalAlignment="Center" 
+                            HorizontalAlignment="Left" 
+                            Margin="5,0,0,0" 
+                            IsHitTestVisible="False" 
+                            FontSize="14"/>
+                        
                     </Grid>
 
                     <ScrollViewer VerticalScrollBarVisibility="Auto" 
-                          HorizontalScrollBarVisibility="Disabled" x:Name="ObjectListScrollViewer"
-                          PreviewMouseWheel="ObjectListScrollViewer_PreviewMouseWheel">
+                        HorizontalScrollBarVisibility="Disabled" 
+                        x:Name="ObjectListScrollViewer"
+                        PreviewMouseWheel="ObjectListScrollViewer_PreviewMouseWheel">
 
                         <ListBox x:Name="ObjectListBox" 
-                                 Background="{StaticResource WindowBackground}"
-                                 BorderThickness="0"
-                                 SelectionMode="Extended" 
-                                 SelectionChanged="ObjectListBox_SelectionChanged">
+                            Background="{StaticResource WindowBackground}"
+                            BorderThickness="0"
+                            SelectionMode="Extended" 
+                            SelectionChanged="ObjectListBox_SelectionChanged">
 
                             <ListBox.GroupStyle>
+                                
                                 <GroupStyle>
+                                    
                                     <GroupStyle.ContainerStyle>
+                                        
                                         <Style TargetType="{x:Type GroupItem}">
+                                            
                                             <Setter Property="Template">
+                                                
                                                 <Setter.Value>
+                                                    
                                                     <ControlTemplate TargetType="{x:Type GroupItem}">
-                                                        <Expander IsExpanded="False" Foreground="{StaticResource FontColor}">
+                                                        
+                                                        <Expander IsExpanded="False" 
+                                                            Foreground="{StaticResource FontColor}">
+                                                            
                                                             <Expander.Header>
+                                                                
                                                                 <StackPanel Orientation="Horizontal">
-                                                                    <TextBlock Text="{Binding Name}" FontWeight="Bold" Margin="0,5,5,5"/>
-                                                                    <TextBlock Text="{Binding ItemCount, StringFormat=({0})}" FontStyle="Italic"/>
+                                                                    
+                                                                    <TextBlock Text="{Binding Name}" 
+                                                                        FontWeight="Bold" Margin="0,5,5,5"/>
+                                                                    
+                                                                    <TextBlock Text="{Binding ItemCount, StringFormat=({0})}" 
+                                                                        FontStyle="Italic"/>
+                                                                    
                                                                 </StackPanel>
+                                                                
                                                             </Expander.Header>
+                                                            
                                                             <ItemsPresenter/>
+                                                            
                                                         </Expander>
+                                                        
                                                     </ControlTemplate>
+                                                    
                                                 </Setter.Value>
+                                                
                                             </Setter>
+                                            
                                         </Style>
+                                        
                                     </GroupStyle.ContainerStyle>
+                                    
                                 </GroupStyle>
+                                
                             </ListBox.GroupStyle>
 
                             <ListBox.ItemTemplate>
+                                
                                 <DataTemplate>
-                                    <TextBlock Text="{Binding Name}" Margin="10,3" Foreground="{StaticResource FontColor}"/>
+                                    
+                                    <TextBlock Text="{Binding Name}" 
+                                        Margin="10,3" 
+                                        Foreground="{StaticResource FontColor}"/>
                                 </DataTemplate>
+                                
                             </ListBox.ItemTemplate>
+                            
                         </ListBox>
+                        
                     </ScrollViewer>
+                    
                 </DockPanel>
+                
             </Border>
 
             <GridSplitter Grid.Column="0" 
-                          HorizontalAlignment="Right" 
-                          VerticalAlignment="Stretch" 
-                          Width="1" 
-                          Background="{StaticResource BorderColor}"
-                          ShowsPreview="True"/>
+                HorizontalAlignment="Right" 
+                VerticalAlignment="Stretch" 
+                Width="1" 
+                Background="{StaticResource BorderColor}"
+                ShowsPreview="True"/>
 
             <Border Grid.Column="1" 
-                    Background="{StaticResource PaneBackground}" 
-                    Padding="10">
+                Background="{StaticResource PaneBackground}" 
+                Padding="10">
+                
                 <DockPanel>
 
                     <TextBlock x:Name="DetailsHeaderTextBlock" 
-                           DockPanel.Dock="Top" 
-                           Margin="0,0,0,10" 
-                           FontSize="16" 
-                           Foreground="{StaticResource AccentColor}"  FontWeight="SemiBold" 
-                           Text="Select an object from the list."/>
+                        DockPanel.Dock="Top" 
+                        Margin="0,0,0,10" 
+                        FontSize="16" 
+                        Foreground="{StaticResource AccentColor}"  FontWeight="SemiBold" 
+                        Text="Select an object from the list."/>
 
                     <Border Grid.Column="1" Padding="10">
+                        
                         <DockPanel>
-                            <ContentControl x:Name="MainContentHost" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+                            
+                            <ContentControl x:Name="MainContentHost" 
+                                HorizontalAlignment="Stretch" 
+                                VerticalAlignment="Stretch"/>
                         </DockPanel>
+                        
                     </Border>
 
                 </DockPanel>
+                
             </Border>
+            
         </Grid>
+        
     </DockPanel>
+    
 </Window>

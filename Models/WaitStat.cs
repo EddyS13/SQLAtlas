@@ -8,7 +8,7 @@ namespace DatabaseVisualizer.Models
 {
     public class WaitStat
     {
-        public string WaitType { get; set; }
+        public string WaitType { get; set; } = string.Empty;
         public long WaitTimeSeconds { get; set; }
         public long WaitingTasksCount { get; set; }
     }

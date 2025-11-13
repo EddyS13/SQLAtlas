@@ -1,8 +1,7 @@
-﻿// MainWindow.xaml.cs
-
-using DatabaseVisualizer.Data;
+﻿using DatabaseVisualizer.Data;
 using DatabaseVisualizer.Services;
 using System.Windows;
+using System.Windows.Input;
 
 namespace DatabaseVisualizer
 {
@@ -16,7 +15,7 @@ namespace DatabaseVisualizer
             WindowsAuthCheckBox_Toggled(null, null);
         }
 
-        private void WindowsAuthCheckBox_Toggled(object sender, RoutedEventArgs e)
+        private void WindowsAuthCheckBox_Toggled(object? sender, RoutedEventArgs? e)
         {
             // Toggles the enabled state of Username and Password fields
             bool isWindowsAuth = WindowsAuthCheckBox.IsChecked ?? false;
@@ -100,6 +99,16 @@ namespace DatabaseVisualizer
         {
             // Closes the current window
             Close();
+        }
+
+        private void WindowHeader_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            // Check if the left mouse button was pressed (to avoid accidentally dragging on right-click)
+            if (e.LeftButton == MouseButtonState.Pressed)
+            {
+                // Tells the operating system to start the window move operation
+                this.DragMove();
+            }
         }
     }
 }
