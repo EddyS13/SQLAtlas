@@ -18,120 +18,211 @@ namespace DatabaseVisualizer
     public partial class ExplorerWindow : Window
     {
         private readonly MetadataService _metadataService = new MetadataService();
-        // CRITICAL FIX: Declare the ICollectionView field for search/filtering
-        private ICollectionView? _objectCollectionView;
 
-        public ExplorerWindow(Dictionary<string, List<DatabaseObject>>? groupedObjects, // Add '?'
+        // Field to hold all schema data (promoted from constructor)
+        private readonly Dictionary<string, List<DatabaseObject>> _allGroupedObjects = new();
+        // Field for filtering the schema list
+        private ICollectionView? _schemaObjectCollectionView;
+
+        // --- CONSTRUCTOR ---
+
+        public ExplorerWindow(Dictionary<string, List<DatabaseObject>>? groupedObjects,
                              string? serverName,
                              string? databaseName)
         {
             InitializeComponent();
 
-            // 1. Initial Setup
-            var safeGroupedObjects = groupedObjects ?? new Dictionary<string, List<DatabaseObject>>();
-            LoadObjectListBox(safeGroupedObjects);
-            PopulateToolsMenu();
+            // 1. Initial Data Setup (Safe assignment of schema data)
+            _allGroupedObjects = groupedObjects ?? new Dictionary<string, List<DatabaseObject>>();
+            LoadSchemaCollection(_allGroupedObjects); // Initialize the collection view
 
-            // Set Version Info
-            VersionNumberTextBlock.Text = "v0.7.3";
-            VersionDateTextBlock.Text = $"Build: {DateTime.Now:yyyy-MM-dd}";
+            // 2. Set Status Bar and Version Info
+            VersionNumberTextBlock.Text = "v0.8.0";
+            VersionDateTextBlock.Text = $"{DateTime.Now:yyyy-MM-dd}";
+            CurrentDatabaseTextBlock.Text = $"DB: {databaseName ?? "N/A"} ({serverName ?? "N/A"})";
 
-            // Set the Status Bar text
-            ConnectionInfoTextBlock.Text = $"Server: {serverName ?? "N/A"} | DB: {databaseName ?? "N/A"}";
-
-            // Set initial default view
-            MainContentHost.Content = new ActivityView();
+            // 3. Set Initial UI State: Select the first ribbon tab to trigger content load
+            if (RibbonMenu.Items.Count > 0)
+            {
+                RibbonMenu.SelectedIndex = 0;
+            }
         }
 
-        // === NAVIGATION SETUP METHODS ===
+        // --- DATA INITIALIZATION & FILTERING ---
 
-        private void PopulateToolsMenu()
+        /// <summary>
+        /// Initializes the master list of database objects and the CollectionView for filtering.
+        /// </summary>
+        private void LoadSchemaCollection(Dictionary<string, List<DatabaseObject>> groupedObjects)
         {
-            var tools = new List<string>
+            var flatList = groupedObjects.SelectMany(g => g.Value).ToList();
+
+            ICollectionView view = CollectionViewSource.GetDefaultView(flatList);
+            _schemaObjectCollectionView = view;
+
+            // Apply grouping for visual hierarchy in the sidebar
+            if (_schemaObjectCollectionView is not null && _schemaObjectCollectionView.CanGroup == true)
             {
-                "Activity & Storage",
-                "Performance Monitor",
-                "Index Analysis",
-            };
-            ToolsListBox.ItemsSource = tools;
+                _schemaObjectCollectionView.GroupDescriptions.Clear();
+                _schemaObjectCollectionView.GroupDescriptions.Add(new PropertyGroupDescription("TypeDescription"));
+            }
+        }
+
+        // --- RIBBON MENU ROUTING ---
+
+        /// <summary>
+        /// Handles the change of the top Ribbon Menu context to update the sidebar.
+        /// </summary>
+        private void RibbonMenu_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (e.Source is TabControl && RibbonMenu.SelectedItem is TabItem selectedTab)
+            {
+                // 1. CRITICAL FIX: Clear the main content host before switching
+                MainContentHost.Content = null;
+
+                // 2. Clear any lingering selection in the sidebar list
+                SchemaListBox.SelectedItem = null;
+
+                string header = selectedTab.Header.ToString() ?? string.Empty;
+                LoadSidebarContent(header);
+            }
         }
 
         /// <summary>
-        /// Populates the ObjectListBox and sets up grouping.
+        /// Loads the appropriate content into the sidebar ListBox based on the Ribbon category.
+        /// </summary>
+        private void LoadSidebarContent(string category)
+        {
+
+            // --- ROUTE CONTENT ---
+            if (category == "Schema Explorer")
+            {
+                SidebarHeaderTextBlock.Text = "SELECT SCHEMA OBJECT";
+
+                // FIX: Show Schema List, Hide Tools List
+                SchemaScrollViewer.Visibility = Visibility.Visible;
+                ToolsScrollViewer.Visibility = Visibility.Collapsed;
+
+                // Assign the grouped view to the Schema ListBox
+                SchemaListBox.ItemsSource = _schemaObjectCollectionView;
+                SidebarSearchTextBox.Visibility = Visibility.Visible;
+                SearchIconTextBlock.Visibility = Visibility.Visible; // <<< SHOW ICON
+            }
+            else
+            {
+                // FIX: Show Tools List, Hide Schema List
+                SidebarHeaderTextBlock.Text = $"TOOLS FOR {category.ToUpper()}";
+                SchemaScrollViewer.Visibility = Visibility.Collapsed;
+                ToolsScrollViewer.Visibility = Visibility.Visible;
+
+                List<string> toolItems = GetToolsListForCategory(category);
+                // Assign the simple list of strings to the dedicated Tools ListBox
+                ToolsListBox.ItemsSource = toolItems;
+                SidebarSearchTextBox.Visibility = Visibility.Collapsed;
+                SearchIconTextBlock.Visibility = Visibility.Collapsed; // <<< HIDE ICON
+            }
+        }
+
+        /// <summary>
+        /// Initializes the master list of database objects and the CollectionView for filtering.
         /// </summary>
         private void LoadObjectListBox(Dictionary<string, List<DatabaseObject>> groupedObjects)
         {
             var flatList = groupedObjects.SelectMany(g => g.Value).ToList();
 
-            ObjectListBox.ItemsSource = flatList;
-
             // Get the collection view and store it for filtering
-            _objectCollectionView = CollectionViewSource.GetDefaultView(ObjectListBox.ItemsSource);
+            ICollectionView view = CollectionViewSource.GetDefaultView(flatList);
+            _schemaObjectCollectionView = view;
 
             // Apply grouping
-            if (_objectCollectionView != null && _objectCollectionView.CanGroup == true)
+            if (_schemaObjectCollectionView is not null && _schemaObjectCollectionView.CanGroup == true)
             {
-                _objectCollectionView.GroupDescriptions.Clear();
-                _objectCollectionView.GroupDescriptions.Add(new PropertyGroupDescription("TypeDescription"));
+                _schemaObjectCollectionView.GroupDescriptions.Clear();
+                _schemaObjectCollectionView.GroupDescriptions.Add(new PropertyGroupDescription("TypeDescription"));
             }
+            // We do NOT assign ItemSource here; the RibbonMenu_SelectionChanged handler does that.
         }
 
-        // === SEARCH HANDLER (Issue 8 Logic) ===
-
-        private void SearchTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        /// <summary>
+        /// Returns the hardcoded list of tools for a given category.
+        /// </summary>
+        private List<string> GetToolsListForCategory(string category)
         {
-            if (_objectCollectionView == null) return;
-
-            string filterText = SearchTextBox.Text.ToLowerInvariant();
-
-            if (string.IsNullOrWhiteSpace(filterText))
+            // Use a Dictionary or a robust switch expression for clear routing
+            return category switch
             {
-                _objectCollectionView.Filter = null; // Show all items
-            }
-            else
-            {
-                // Set the filter delegate
-                _objectCollectionView.Filter = (item) =>
-                {
-                    if (item is DatabaseObject dbObject)
+                // Category 1: Schema Explorer (Handled by different logic, but included here for completeness)
+                "Schema Explorer" => new List<string>(),
+
+                // Category 2: Performance (Each item loads a specific, distinct View)
+                "Performance" => new List<string>
                     {
-                        // Filter by name or description
-                        return dbObject.Name.ToLowerInvariant().Contains(filterText) ||
-                               dbObject.TypeDescription.ToLowerInvariant().Contains(filterText);
-                    }
-                    return false;
-                };
-            }
+                        "Active Running Queries",
+                        "Top Expensive Queries",
+                        "Wait Statistics",
+                        "Blocking Monitor"
+                    },
+
+                // Category 3: Security & User Management Tools
+                "Security" => new List<string>
+                    {
+                        "User/Role/Permission Manager",
+                        "Security Audit Log Viewer",
+                        "Data Masking Manager"
+                    },
+
+                // Category 4: Maintenance (Includes Index Features)
+                "Maintenance" => new List<string>
+                    {
+                        "Backup History & Restore",
+                        "Job Scheduling/Agent Manager",
+                        "Index Optimization Advisor",   
+                        "Missing Index Recommendations"
+                    },
+
+                // Category 5: Configuration & Utility Tools
+                "Configuration" => new List<string>
+                    {
+                        "Server/Database Configuration Editor"
+                    },
+
+                // Category 6: Design & Development Tools
+                "Design & Dev" => new List<string>
+                    {
+                        "Schema Comparison and Synchronization",
+                        "SQL Snippet/Template Library",
+                        "Query Execution Plan Visualizer"
+                    },
+
+                // Category 7: High Availability Tools
+                "High Availability" => new List<string>
+                    {
+                        "High Availability Status Dashboard"
+                    },
+
+                "General Info" => new List<string>
+                    {
+                        "Server & Database Details" 
+                    },
+
+            // Final Fallback
+            _ => new List<string> { "No tools defined for this category." },
+            };
         }
 
-        // === EVENT HANDLERS (Routing Logic) ===
+        // --- DYNAMIC CONTENT HOST ROUTING ---
 
-        /// <summary>
-        /// Handles navigation when a diagnostic tool is selected from the sidebar.
-        /// </summary>
-        private void ToolsListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (ToolsListBox.SelectedItem is string selectedTool)
-            {
-                // Ensure no object is selected when a tool is active
-                ObjectListBox.SelectedItem = null;
-                LoadDiagnosticView(selectedTool);
-            }
-        }
-
-        /// <summary>
-        /// Handles navigation when a database object is selected from the list.
-        /// </summary>
-        private void ObjectListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private void SchemaListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             // Reset tool selection to prevent conflicts
             ToolsListBox.SelectedItem = null;
 
             // 1. Get Selected Objects (Defensive Casting)
-            var selectedObjects = ObjectListBox.SelectedItems.Cast<object>().OfType<DatabaseObject>().ToList();
+            // CRITICAL FIX: Reference SchemaListBox instead of the ambiguous name
+            var selectedObjects = SchemaListBox.SelectedItems.Cast<object>().OfType<DatabaseObject>().ToList();
             var selectedTables = selectedObjects.Where(o => o.Type.ToUpperInvariant() == "U").ToList();
 
-            // 2. --- Multi-Select Logic (FK Check - Passes List) ---
+            // 2. --- Multi-Select Logic (FK Check) ---
             if (selectedTables.Count >= 2)
             {
                 LoadMetadataView(selectedTables, isMultiSelect: true);
@@ -151,29 +242,61 @@ namespace DatabaseVisualizer
             }
         }
 
-        // --- View Loading Helpers ---
+        private void ToolsListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            // Clear schema selection to prevent conflicts
+            SchemaListBox.SelectedItem = null;
 
+            if (ToolsListBox.SelectedItem is string selectedTool)
+            {
+                // Route the selected tool string to the diagnostic view loader
+                LoadDiagnosticView(selectedTool);
+            }
+        }
+
+        /// <summary>
+        /// Loads the appropriate View based on the selected diagnostic tool string.
+        /// </summary>
         private void LoadDiagnosticView(string viewName)
         {
             UserControl? newView = viewName switch
             {
-                "Activity & Storage" => new ActivityView(),
-                "Performance Monitor" => new PerformanceView(),
-                "Index Analysis" => new IndexView(),
-                _ => null, 
+                // Map the tool name from the ListBox to the correct View class
+                "Activity & Storage" => new ActivityView(), // Use ActivityView as the default state if needed
+                "Performance" => new PerformanceView(),
+                "Top Query Analysis" => new PerformanceView(), // PerformanceView handles query analysis
+                //"Index Optimization Advisor" => new IndexView(),
+                "Security Permissions" => new SecurityView(),
+                "Active Running Queries" => new ActiveQueriesView(),
+                "Top Expensive Queries" => new ExpensiveQueriesView(),
+                "Wait Statistics" => new WaitStatsView(),
+                "Blocking Monitor" => new BlockingChainView(),
+                "User/Role/Permission Manager" => new UserRoleView(),
+                "Security Audit Log Viewer" => new AuditLogView(),
+                "Data Masking Manager" => new Views.DataMaskingView(),
+                "Server & Database Details" => new ServerInfoView(),
+                "Backup History & Restore" => new Views.BackupRestoreView(),
+                "Job Scheduling/Agent Manager" => new Views.JobManagerView(),
+                "Index Optimization Advisor" => new Views.IndexOptimizationView(),
+                "Missing Index Recommendations" => new Views.MissingIndexView(),
+                // Add cases for Backup, Config, etc.
+                _ => null,
             };
 
-            // Fallback ensures ContentHost always receives a valid UserControl
-            MainContentHost.Content = newView ?? new UserControl { Content = new TextBlock { Text = "Tool not found." } };
+            // Fallback ensures ContentHost always receives a valid object
+            MainContentHost.Content = newView ?? new UserControl { Content = new TextBlock { Text = $"Select a tool from the {viewName} category." } };
         }
 
+        /// <summary>
+        /// Loads the appropriate Metadata View based on the selected DatabaseObject type.
+        /// </summary>
         private void LoadMetadataView(List<DatabaseObject> selectedObjects, bool isMultiSelect)
         {
             UserControl? newView = null;
 
             if (isMultiSelect)
             {
-                // MULTI-SELECT: Load Relationship View
+                // MULTI-SELECT: Load Relationship View for FK comparison
                 newView = new RelationshipsView(selectedObjects, isMultiSelect: true);
             }
             else if (selectedObjects.Count == 1)
@@ -183,18 +306,41 @@ namespace DatabaseVisualizer
 
                 if (objectType == "U" || objectType == "V")
                 {
-                    // TABLES & VIEWS: Load Columns view (which includes Relationships/Security)
                     newView = new ColumnsView(dbObject);
                 }
                 else if (objectType == "P" || objectType.Contains("F"))
                 {
-                    // PROCEDURES & FUNCTIONS: Load Code Inspection view (which includes Security)
                     newView = new CodeView(dbObject);
                 }
             }
 
-            // Fallback ensures ContentHost always receives a valid object
             MainContentHost.Content = newView ?? new UserControl { Content = new TextBlock { Text = "Select an object." } };
+        }
+
+        // --- SEARCH HANDLER ---
+
+        private void SidebarSearchTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (_schemaObjectCollectionView is null) return;
+
+            string filterText = SidebarSearchTextBox.Text.ToLowerInvariant();
+
+            if (string.IsNullOrWhiteSpace(filterText))
+            {
+                _schemaObjectCollectionView.Filter = null;
+            }
+            else
+            {
+                _schemaObjectCollectionView.Filter = (item) =>
+                {
+                    if (item is DatabaseObject dbObject)
+                    {
+                        return dbObject.Name.ToLowerInvariant().Contains(filterText) ||
+                               dbObject.TypeDescription.ToLowerInvariant().Contains(filterText);
+                    }
+                    return false;
+                };
+            }
         }
 
         // === SYSTEM CONTROL HANDLERS ===
@@ -207,7 +353,7 @@ namespace DatabaseVisualizer
             this.Close();
         }
 
-        // --- Custom Window Chrome Handlers ---
+        // Handlers for Custom Window Chrome
         private void MinimizeButton_Click(object sender, RoutedEventArgs e)
         {
             WindowState = WindowState.Minimized;
@@ -223,31 +369,10 @@ namespace DatabaseVisualizer
             Close();
         }
 
-        // --- SCROLL WHEEL HANDLER (Issue 3 Fix) ---
-        private void ObjectListScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
-        {
-            if (sender is ScrollViewer scrollViewer)
-            {
-                if (e.Delta < 0)
-                {
-                    scrollViewer.LineDown();
-                    scrollViewer.LineDown();
-                }
-                else
-                {
-                    scrollViewer.LineUp();
-                    scrollViewer.LineUp();
-                }
-                e.Handled = true;
-            }
-        }
-
         private void WindowHeader_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            // Check if the left mouse button was pressed
             if (e.LeftButton == MouseButtonState.Pressed)
             {
-                // CRITICAL: Call the DragMove method to start moving the window.
                 this.DragMove();
             }
         }

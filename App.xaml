@@ -1,7 +1,9 @@
 ﻿<Application x:Class="DatabaseVisualizer.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:DatabaseVisualizer.Converters"
              StartupUri="MainWindow.xaml">
+    
     <Application.Resources>
 
         <SolidColorBrush x:Key="AccentColor" Color="#00AEEF"/>         <!-- Primary Cyan/Teal Accent -->
@@ -11,6 +13,8 @@
         <SolidColorBrush x:Key="BorderColor" Color="#2962FF"/>
         <SolidColorBrush x:Key="HighlightColor" Color="#1E88E5"/>
         <SolidColorBrush x:Key="CodeBackground" Color="#FAFAFA"/>
+
+        <local:BoolToActionConverter x:Key="BoolToActionConverter"/>
 
         <Style TargetType="{x:Type Window}">
             <Setter Property="Background" Value="{StaticResource WindowBackground}"/>
@@ -27,11 +31,15 @@
             <Setter Property="Padding" Value="10,5"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <!-- Ensures color remains vibrant on hover -->
+            <Setter Property="FontWeight" Value="SemiBold"/>            
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="{StaticResource AccentColor}"/>
+                    <Setter Property="Background" Value="{StaticResource AccentColorHover}"/>
+                </Trigger>
+
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Foreground" Value="{StaticResource FontColor}"/>
+                    <Setter Property="Background" Value="#A0A0A0"/>
                 </Trigger>
             </Style.Triggers>
         </Style>

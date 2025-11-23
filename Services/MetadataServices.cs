@@ -2,9 +2,15 @@
 
 using DatabaseVisualizer.Data;
 using DatabaseVisualizer.Models;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Data;
+using System.Diagnostics;
+using System.Reflection;
+using System.Runtime.Intrinsics.X86;
+using System.Threading;
 using System.Windows; // Used for MessageBox.Show in try/catch blocks
 
 namespace DatabaseVisualizer.Services
@@ -742,60 +748,81 @@ namespace DatabaseVisualizer.Services
             {
                 string sql = @"
                     SELECT
-                        OBJECT_SCHEMA_NAME(ips.object_id) AS SchemaName,
-                        OBJECT_NAME(ips.object_id) AS TableName,
+                        QUOTENAME(s.name) + '.' + QUOTENAME(t.name) AS SchemaTableName,
                         si.name AS IndexName,
                         ips.avg_fragmentation_in_percent,
                         ips.page_count,
                         CASE
-                            WHEN ips.avg_fragmentation_in_percent >= 30 THEN 'REBUILD (CRITICAL)'
-                            WHEN ips.avg_fragmentation_in_percent > 5 AND ips.avg_fragmentation_in_percent < 30 THEN 'REORGANIZE'
+                            WHEN ips.avg_fragmentation_in_percent >= 30 AND ips.page_count > 8 THEN 'REBUILD (CRITICAL)'
+                            WHEN ips.avg_fragmentation_in_percent > 5 AND ips.page_count > 8 THEN 'REORGANIZE'
                             ELSE 'OK'
                         END AS MaintenanceAction
                     FROM
-                        sys.dm_db_index_physical_stats(DB_ID(), NULL, NULL, NULL, 'LIMITED') AS ips
+                        sys.dm_db_index_physical_stats(DB_ID(), NULL, NULL, NULL, 'SAMPLED') AS ips
+                    INNER JOIN
+                        sys.tables AS t ON ips.object_id = t.object_id  -- Ensure table exists
+                    INNER JOIN
+                        sys.schemas AS s ON t.schema_id = s.schema_id
                     INNER JOIN
                         sys.indexes AS si ON ips.object_id = si.object_id AND ips.index_id = si.index_id
                     WHERE
                         ips.index_id > 0 
-                        AND ips.page_count > 8 
-                        -- CRITICAL FIX: Ensure the object name is resolvable and the index name is not null.
-                        AND OBJECT_NAME(ips.object_id) IS NOT NULL 
-                        AND si.name IS NOT NULL 
+                        AND ips.page_count > 8
                     ORDER BY
-                        OBJECT_NAME(ips.object_id), ips.avg_fragmentation_in_percent DESC;";
+                        OBJECT_NAME(ips.object_id), ips.avg_fragmentation_in_percent DESC;"; 
 
                 DataTable dt = SqlConnectionManager.ExecuteQuery(sql);
                 var fragList = new List<IndexFragmentation>();
 
-                if (dt != null)
+                if (dt is not null)
                 {
                     foreach (DataRow row in dt.Rows)
                     {
-                        string schemaName = row["SchemaName"]?.ToString() ?? "dbo";
-                        string tableName = row["TableName"]?.ToString() ?? "N/A";
+                        // Safety check helpers
+                        var fragObj = row["avg_fragmentation_in_percent"];
+                        var pageObj = row["page_count"];
+
+                        // 1. Safely retrieve numeric values, defaulting to 0.0 or 0
+                        double fragmentationPercent = (row["avg_fragmentation_in_percent"] is DBNull)
+                                                              ? 0.0
+                                                              : Convert.ToDouble(row["avg_fragmentation_in_percent"]);
+
+                        long pageCount = (row["page_count"] is DBNull)
+                                                 ? 0
+                                                 : Convert.ToInt64(row["page_count"]);
+
                         string indexName = row["IndexName"]?.ToString() ?? "N/A";
-                        string action = row["MaintenanceAction"]?.ToString() ?? "OK";
-                        double fragmentationPercent = Convert.ToDouble(row["avg_fragmentation_in_percent"]);
 
-                        string script = "N/A";
+                        // CRITICAL CHECK: Filter out results that have unresolvable names (just in case)
+                        if (indexName == "N/A") continue;
 
-                        if (action.Contains("REBUILD"))
+                        // 2. Determine action and script (using the new safe variables)
+                        string action;
+                        string script;
+                        string schemaTableName = row["SchemaTableName"]?.ToString() ?? "N/A";
+
+                        if (fragmentationPercent >= 30 && pageCount > 8)
                         {
-                            // Full DDL command construction
-                            script = $"ALTER INDEX [{indexName}] ON [{schemaName}].[{tableName}] REBUILD WITH (ONLINE = (ON), SORT_IN_TEMPDB = ON);";
+                            action = "REBUILD (CRITICAL)";
+                            script = $"ALTER INDEX [{indexName}] ON {schemaTableName} REBUILD WITH (ONLINE = (ON), SORT_IN_TEMPDB = ON);";
                         }
-                        else if (action.Contains("REORGANIZE"))
+                        else if (fragmentationPercent > 5 && pageCount > 8)
                         {
-                            script = $"ALTER INDEX [{indexName}] ON [{schemaName}].[{tableName}] REORGANIZE;";
+                            action = "REORGANIZE";
+                            script = $"ALTER INDEX [{indexName}] ON {schemaTableName} REORGANIZE;";
+                        }
+                        else
+                        {
+                            action = "OK";
+                            script = "N/A";
                         }
 
                         fragList.Add(new IndexFragmentation
                         {
-                            SchemaTableName = $"[{schemaName}].[{tableName}]",
+                            SchemaTableName = schemaTableName,
                             IndexName = indexName,
-                            FragmentationPercent = fragmentationPercent,
-                            PageCount = Convert.ToInt64(row["page_count"]),
+                            FragmentationPercent = fragmentationPercent, // Use safe variable
+                            PageCount = pageCount,                     // Use safe variable
                             MaintenanceAction = action,
                             MaintenanceScript = script
                         });
@@ -891,6 +918,227 @@ namespace DatabaseVisualizer.Services
                 return "Error";
             }
         }
+
+        public List<DatabasePrincipal> GetDatabasePrincipals()
+        {
+            try
+            {
+                string sql = @"
+            SELECT
+                p.name AS PrincipalName,
+                p.type_desc AS PrincipalType,
+                STUFF((
+                    SELECT ', ' + dp.name
+                    FROM sys.database_principals dp
+                    JOIN sys.database_role_members rm ON rm.role_principal_id = dp.principal_id
+                    WHERE rm.member_principal_id = p.principal_id
+                    FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'), 1, 2, '') AS RoleMembership
+            FROM sys.database_principals p
+            WHERE p.sid IS NOT NULL AND p.name NOT LIKE '##%';";
+
+                DataTable dt = SqlConnectionManager.ExecuteQuery(sql);
+                var principals = new List<DatabasePrincipal>();
+
+                if (dt is not null)
+                {
+                    foreach (DataRow row in dt.Rows)
+                    {
+                        principals.Add(new DatabasePrincipal
+                        {
+                            Name = row["PrincipalName"]?.ToString() ?? "N/A",
+                            Type = row["PrincipalType"]?.ToString() ?? "N/A",
+                            RoleMembership = row["RoleMembership"]?.ToString() ?? "public"
+                        });
+                    }
+                }
+                return principals;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Principal Access Error: {ex.Message}", "Security Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return new List<DatabasePrincipal>();
+            }
+        }
+
+        public List<SecurityEvent> GetRecentSecurityEvents()
+        {
+            try
+            {
+                string sql = @"
+                    DECLARE @TraceFileName NVARCHAR(1000);
+
+                    -- 1. Get the path to the active default trace file using CONVERT
+                    SELECT TOP 1 @TraceFileName = CONVERT(NVARCHAR(1000), value) 
+                    FROM sys.fn_trace_getinfo(default) 
+                    WHERE property = 2
+                    ORDER BY traceid DESC;
+
+                    -- 2. Query the trace file using the full path
+                    SELECT TOP 50
+                        StartTime,
+                        HostName AS ClientHost,
+                        ApplicationName AS ApplicationName,
+                        LoginName,
+                        CASE WHEN EventClass = 20 THEN 'Login Failed' 
+                             WHEN EventClass = 17 THEN 'Login Succeeded'
+                             ELSE 'Other Audit Event' 
+                        END AS EventType,
+                        CASE WHEN Success = 1 THEN 'True' ELSE 'False' END AS Success,
+                        DatabaseName -- Include this for debugging context
+                    FROM sys.fn_trace_gettable(@TraceFileName, default) AS trace
+                    WHERE EventClass IN (20, 17) -- 20: Login Failed, 17: Login Succeeded
+                    ORDER BY StartTime DESC;";
+
+                DataTable dt = SqlConnectionManager.ExecuteQuery(sql);
+                var securityEvents = new List<SecurityEvent>();
+
+                if (dt is not null)
+                {
+                    foreach (DataRow row in dt.Rows)
+                    {
+                        securityEvents.Add(new SecurityEvent
+                        {
+                            EventTime = (row["StartTime"] is DBNull) ? DateTime.MinValue : Convert.ToDateTime(row["StartTime"]),
+                            LoginName = row["LoginName"]?.ToString() ?? "N/A",
+                            ClientHost = row["ClientHost"]?.ToString() ?? "N/A",
+                            EventType = row["EventType"]?.ToString() ?? "N/A",
+                            Success = row["Success"]?.ToString() ?? "N/A"
+                        });
+                    }
+                }
+                return securityEvents;
+            }
+            catch (Exception ex)
+            {
+                // CRITICAL FIX: Use single double quotes and ensure the string is valid.
+                MessageBox.Show($"Security Events Access Error: You may lack VIEW SERVER STATE permission or the trace file is inaccessible. Details: {ex.Message}",
+                                "Security Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return new List<SecurityEvent>();
+            }
+        }
+
+        // Services/MetadataService.cs (Modified GetMaskingCandidates method)
+
+        public List<MaskingCandidate> GetMaskingCandidates()
+        {
+            try
+            {
+                // FINAL ROBUST T-SQL FIX: We must use Dynamic SQL (SET @sql = N'...') 
+                // to bypass the static parser error that occurs even in SQL Server 2022.
+                string dynamicSql = @"
+                    DECLARE @sql NVARCHAR(MAX);
+            
+                    SELECT
+                        QUOTENAME(s.name) + '.' + QUOTENAME(t.name) AS SchemaTableName,
+                        c.name AS ColumnName,
+                        ty.name AS DataType,
+                        mc.masking_function AS MaskingFunction,
+                        CASE WHEN mc.masking_function IS NOT NULL THEN 1 ELSE 0 END AS IsMasked
+                    FROM sys.columns c
+                    INNER JOIN sys.tables t ON c.object_id = t.object_id
+                    INNER JOIN sys.schemas s ON t.schema_id = s.schema_id
+                    INNER JOIN sys.types ty ON c.system_type_id = ty.system_type_id
+                    LEFT JOIN sys.masked_columns mc ON c.object_id = mc.object_id AND c.column_id = mc.column_id
+                    WHERE 
+                        mc.masking_function IS NOT NULL -- Already masked (found via the LEFT JOIN)
+                        OR (
+                            c.name  LIKE '%email%' 
+                            OR c.name LIKE '%ssn%' 
+                            OR c.name LIKE '%sec_no%' 
+                            OR c.name LIKE '%passw%'
+                           )
+                        OR ty.name IN ('char', 'varchar', 'nvarchar', 'varbinary','text', 'ntext')
+                    ORDER BY SchemaTableName, ColumnName;
+                ";
+
+                // Note: SqlConnectionManager.ExecuteQuery handles the result set from the EXEC call.
+                DataTable dt = SqlConnectionManager.ExecuteQuery(dynamicSql);
+                var candidates = new List<MaskingCandidate>();
+
+                if (dt is not null)
+                {
+                    foreach (DataRow row in dt.Rows)
+                    {
+                        // CRITICAL FIX: Read IsMasked safely from the generated column
+                        bool isMasked = row["IsMasked"] is not DBNull && Convert.ToBoolean(row["IsMasked"]);
+
+                        string tableName = row["SchemaTableName"]?.ToString() ?? "N/A";
+                        string columnName = row["ColumnName"]?.ToString() ?? "N/A";
+                        string dataType = row["DataType"]?.ToString() ?? "N/A";
+                        string maskingFunction = row["MaskingFunction"]?.ToString() ?? "partial(1,'xxxx',0)";
+
+                        // Construct the DDL script
+                        string script = isMasked
+                            ? $"ALTER TABLE {tableName} ALTER COLUMN {columnName} {dataType} NO MASKED;" // Script to UNMASK
+                            : $"ALTER TABLE {tableName} ALTER COLUMN {columnName} ADD MASKED WITH (FUNCTION = '{maskingFunction}');"; // Script to MASK
+
+                        candidates.Add(new MaskingCandidate
+                        {
+                            SchemaTableName = tableName,
+                            ColumnName = columnName,
+                            DataType = dataType,
+                            IsMasked = isMasked,
+                            MaskingFunction = maskingFunction,
+                            MaskingScript = script
+                        });
+                    }
+                }
+                return candidates;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Data Masking Access Error (Dynamic SQL Failure): The system could not execute the query to check for masking candidates. Details: {ex.Message}", "Security Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return new List<MaskingCandidate>();
+            }
+        }
+
+        public List<ServerInfoDetail> GetServerInformation()
+        {
+            try
+            {
+                string sql = @"
+                    SELECT 'SQL Server Version' AS PropertyName, @@VERSION AS Value
+                    UNION ALL
+                    SELECT 'Edition', SERVERPROPERTY('Edition')
+                    UNION ALL
+                    SELECT 'Instance Name', SERVERPROPERTY('InstanceName')
+                    UNION ALL
+                    SELECT 'Is Clustered', SERVERPROPERTY('IsClustered')
+                    UNION ALL
+                    SELECT 'Product Level', SERVERPROPERTY('ProductLevel')
+                    UNION ALL
+                    SELECT 'Database Compatibility Level', CAST(compatibility_level AS NVARCHAR(100))
+                    FROM sys.databases WHERE name = DB_NAME()
+                    UNION ALL
+                    -- CRITICAL FIX: Use the confirmed working column: physical_memory_kb
+                    SELECT 'Physical RAM (MB)', CAST((physical_memory_kb / 1024) AS NVARCHAR(100))
+                    FROM sys.dm_os_sys_info
+                    ORDER BY PropertyName;";
+
+                DataTable dt = SqlConnectionManager.ExecuteQuery(sql);
+                var details = new List<ServerInfoDetail>();
+
+                if (dt is not null)
+                {
+                    foreach (DataRow row in dt.Rows)
+                    {
+                        details.Add(new ServerInfoDetail
+                        {
+                            PropertyName = row["PropertyName"]?.ToString() ?? "N/A",
+                            Value = row["Value"]?.ToString() ?? "N/A"
+                        });
+                    }
+                }
+                return details;
+            }
+            catch (Exception ex)
+            {
+                // ... (existing catch block) ...
+                MessageBox.Show($"Server Info Access Error: {ex.Message}", "System Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return new List<ServerInfoDetail>();
+            }
+        }
+
 
 
 

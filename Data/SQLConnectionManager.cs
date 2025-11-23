@@ -9,13 +9,18 @@ namespace DatabaseVisualizer.Data
     public static class SqlConnectionManager
     {
         private static string? _connectionString;
+        const int CommandTimeoutSeconds = 300;
 
         /// <summary>
         /// Clears the stored connection string, allowing the user to connect to a new database.
         /// </summary>
         public static void Disconnect()
         {
+            // Clear the stored connection string
             _connectionString = null;
+
+            // CRITICAL FIX: Clear the connection pool to reset any bad session context
+            SqlConnection.ClearAllPools();
         }
 
         /// <summary>
@@ -134,6 +139,8 @@ namespace DatabaseVisualizer.Data
                                 command.Parameters.AddWithValue(param.Key, param.Value ?? DBNull.Value);
                             }
                         }
+
+                        command.CommandTimeout = CommandTimeoutSeconds;
 
                         using (var adapter = new SqlDataAdapter(command))
                         {

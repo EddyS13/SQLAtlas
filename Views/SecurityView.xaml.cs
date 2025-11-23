@@ -63,18 +63,16 @@ namespace DatabaseVisualizer.Views
                 DatabaseObject targetObject = _selectedObjects.First();
                 string objectName = targetObject.Name;
 
-                // 1. Load Permissions
-                var permissions = await Task.Run(() => _metadataService.GetObjectPermissions(objectName));
-                PermissionsDataGrid.ItemsSource = permissions;
+                // 1. User/Role Manager Data
+                var principals = await Task.Run(() => _metadataService.GetDatabasePrincipals());
+                UsersRolesGrid.ItemsSource = principals; // Assuming grid name is UsersRolesGrid
 
-                // Optional: Display header text indicating what object's permissions are shown
+                // 2. Audit Log Viewer Data
+                var events = await Task.Run(() => _metadataService.GetRecentSecurityEvents());
+                AuditLogGrid.ItemsSource = events; // Assuming grid name is AuditLogGrid
             }
-            else
-            {
-                // Clear the grid and display a prompt if loaded from the Tools menu without selection
-                PermissionsDataGrid.ItemsSource = null;
-                // Note: You would typically update a TextBlock here if one existed for status.
-            }
+
         }
+
     }
 }
