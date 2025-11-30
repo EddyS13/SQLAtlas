@@ -2,7 +2,7 @@
 
 using System.Collections.ObjectModel;
 
-namespace DatabaseVisualizer.Models
+namespace SQLAtlas.Models
 {
     public class DatabaseObject
     {
@@ -11,5 +11,13 @@ namespace DatabaseVisualizer.Models
         public string TypeDescription { get; set; } = string.Empty;
         public string SchemaName { get; set; } = string.Empty;
         public ObservableCollection<DatabaseObject> Children { get; set; } = new ObservableCollection<DatabaseObject>();
+
+        /// <summary>
+        /// Returns the display name for the schema explorer tree view.
+        /// </summary>
+        public override string ToString()
+        {
+            return Name;
+        }
     }
 }

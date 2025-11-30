@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace DatabaseVisualizer.Models
+namespace SQLAtlas.Models
 {
     // Represents all tables related to a single selected table
     public class RelationshipMap

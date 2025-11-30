@@ -1,19 +1,21 @@
 ﻿// Services/MetadataService.cs
 
-using DatabaseVisualizer.Data;
-using DatabaseVisualizer.Models;
+using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
+using SQLAtlas.Data;
+using SQLAtlas.Models;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Data;
 using System.Diagnostics;
+using System.Management;
 using System.Reflection;
 using System.Runtime.Intrinsics.X86;
 using System.Threading;
 using System.Windows; // Used for MessageBox.Show in try/catch blocks
 
-namespace DatabaseVisualizer.Services
+namespace SQLAtlas.Services
 {
     public class MetadataService
     {
@@ -1139,7 +1141,648 @@ namespace DatabaseVisualizer.Services
             }
         }
 
+        public List<SchemaDifference> GetBaseSchema(string targetConnectionString)
+        {
+            // NOTE: This uses ADO.NET directly, bypassing the standard SqlConnectionManager
+            // to handle the secondary connection string.
 
+            string sql = @"
+                SELECT 
+                        t.name AS ObjectName,
+                        c.name AS ColumnName,
+                        ty.name AS DataType
+                    FROM sys.tables t
+                    LEFT JOIN sys.columns c ON t.object_id = c.object_id -- <<< CRITICAL LEFT JOIN FIX
+                    LEFT JOIN sys.types ty ON c.system_type_id = ty.system_type_id
+                    WHERE t.is_ms_shipped = 0 
+                    ORDER BY t.name, c.column_id;";
+
+            var schemaDetails = new List<SchemaDifference>();
+
+            try
+            {
+                using (var connection = new Microsoft.Data.SqlClient.SqlConnection(targetConnectionString))
+                {
+                    connection.Open();
+                    using (var command = new Microsoft.Data.SqlClient.SqlCommand(sql, connection))
+                    {
+                        command.CommandTimeout = 300; // Use the long timeout
+                        using (var reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                schemaDetails.Add(new SchemaDifference
+                                {
+                                    ObjectName = reader["ObjectName"]?.ToString() ?? string.Empty, // <<< Ensure safe access
+                                    ColumnName = reader["ColumnName"]?.ToString() ?? string.Empty, // <<< Ensure safe access
+                                    DataType = reader["DataType"]?.ToString() ?? string.Empty,     // <<< Ensure safe access
+                                    DifferenceType = "Source"
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // On failure, return only a single error object to indicate the problem.
+                schemaDetails.Add(new SchemaDifference { DifferenceType = $"Error: {ex.Message}" });
+            }
+            return schemaDetails;
+        }
+
+        public List<SqlAgentJob> GetSqlAgentJobs()
+        {
+            try
+            {
+                // NOTE: This query targets msdb, which is accessible to all application databases.
+                string sql = @"
+            SELECT 
+                j.name AS JobName,
+                CASE WHEN j.enabled = 1 THEN 'Enabled' ELSE 'Disabled' END AS Status,
+                c.name AS Category,
+                s.next_run_date,
+                s.next_run_time
+            FROM msdb.dbo.sysjobs j
+            INNER JOIN msdb.dbo.syscategories c ON j.category_id = c.category_id
+            LEFT JOIN msdb.dbo.sysjobschedules s ON j.job_id = s.job_id
+            WHERE c.name NOT LIKE 'REPL%' AND j.name NOT LIKE 'sys\_%'
+            ORDER BY j.name;";
+
+                DataTable dt = SqlConnectionManager.ExecuteQuery(sql);
+                var jobs = new List<SqlAgentJob>();
+
+                if (dt is not null)
+                {
+                    foreach (DataRow row in dt.Rows)
+                    {
+                        jobs.Add(new SqlAgentJob
+                        {
+                            JobName = row["JobName"]?.ToString() ?? "N/A",
+                            Status = row["Status"]?.ToString() ?? "N/A",
+                            Category = row["Category"]?.ToString() ?? "N/A",
+                            // Convert integer date/time formats to strings for display
+                            NextRunDate = row["next_run_date"].ToString() == "0" ? "N/A" : row["next_run_date"]?.ToString() ?? "N/A",
+                            NextRunTime = row["next_run_time"].ToString() == "0" ? "N/A" : row["next_run_time"]?.ToString() ?? "N/A"
+                        });
+                    }
+                }
+                return jobs;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"SQL Agent Job Access Error: {ex.Message}", "Administration Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return new List<SqlAgentJob>();
+            }
+        }
+
+        public List<BackupHistory> GetBackupHistory()
+        {
+            try
+            {
+                // T-SQL to retrieve recent successful backups for the current database
+                string sql = @"
+            SELECT TOP 20
+                s.database_name AS DatabaseName,
+                s.backup_start_date AS BackupDate,
+                CASE s.type 
+                    WHEN 'D' THEN 'Full' 
+                    WHEN 'I' THEN 'Differential' 
+                    WHEN 'L' THEN 'Log' 
+                    ELSE s.type END AS BackupType,
+                s.user_name AS UserName,
+                CAST((s.backup_size / 1024.0 / 1024.0) AS DECIMAL(10, 2)) AS SizeMB,
+                m.physical_device_name AS DeviceName
+            FROM msdb.dbo.backupset s
+            INNER JOIN msdb.dbo.backupmediafamily m ON s.media_set_id = m.media_set_id
+            WHERE s.database_name = DB_NAME() 
+            ORDER BY s.backup_start_date DESC;";
+
+                DataTable dt = SqlConnectionManager.ExecuteQuery(sql);
+                var history = new List<BackupHistory>();
+
+                if (dt is not null)
+                {
+                    foreach (DataRow row in dt.Rows)
+                    {
+                        history.Add(new BackupHistory
+                        {
+                            DatabaseName = row["DatabaseName"]?.ToString() ?? "N/A",
+                            BackupDate = Convert.ToDateTime(row["BackupDate"]),
+                            BackupType = row["BackupType"]?.ToString() ?? "N/A",
+                            UserName = row["UserName"]?.ToString() ?? "N/A",
+                            SizeMB = Convert.ToDecimal(row["SizeMB"]),
+                            DeviceName = row["DeviceName"]?.ToString() ?? "N/A"
+                        });
+                    }
+                }
+                return history;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Backup History Access Error: {ex.Message}", "Maintenance Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return new List<BackupHistory>();
+            }
+        }
+
+        public List<ServerSetting> GetConfigurableSettings()
+        {
+            try
+            {
+                // T-SQL to pull all sp_configure settings and their current values
+                string sql = @"
+            SELECT 
+                name AS Name, 
+                value AS ConfigValue,
+                value_in_use AS CurrentValue,
+                description AS Description
+            FROM sys.configurations
+            ORDER BY name;";
+
+                DataTable dt = SqlConnectionManager.ExecuteQuery(sql);
+                var settings = new List<ServerSetting>();
+
+                if (dt is not null)
+                {
+                    foreach (DataRow row in dt.Rows)
+                    {
+                        string name = row["Name"]?.ToString() ?? "N/A";
+                        string configValue = row["ConfigValue"]?.ToString() ?? "N/A";
+                        string currentValue = row["CurrentValue"]?.ToString() ?? "N/A";
+
+                        // Construct the DDL script template for actionability
+                        string script = $"EXEC sp_configure '{name}', [NEW_VALUE]; RECONFIGURE;";
+
+                        settings.Add(new ServerSetting
+                        {
+                            Name = name,
+                            ConfigValue = configValue,
+                            CurrentValue = currentValue,
+                            Description = row["Description"]?.ToString() ?? "N/A",
+                            ConfigurationScript = script
+                        });
+                    }
+                }
+                return settings;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Server Configuration Access Error: {ex.Message}", "Configuration Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return new List<ServerSetting>();
+            }
+        }
+
+        public List<ServerSetting> GetDatabaseConfiguration()
+        {
+            try
+            {
+                // T-SQL to retrieve critical database configuration settings for the CURRENT database.
+                string sql = @"
+                    SELECT 'Database Name' AS PropertyName, DB_NAME() AS Value
+                    UNION ALL
+                    SELECT 'Recovery Model', recovery_model_desc
+                    FROM sys.databases WHERE name = DB_NAME()
+                    UNION ALL
+                    SELECT 'Compatibility Level', CAST(compatibility_level AS NVARCHAR(100))
+                    FROM sys.databases WHERE name = DB_NAME()
+                    UNION ALL
+                    SELECT 'Auto Close', CAST(is_auto_close_on AS NVARCHAR(100))
+                    FROM sys.databases WHERE name = DB_NAME()
+                    UNION ALL
+                    SELECT 'Auto Shrink', CAST(is_auto_shrink_on AS NVARCHAR(100))
+                    FROM sys.databases WHERE name = DB_NAME()
+                    ORDER BY PropertyName;";
+
+                DataTable dt = SqlConnectionManager.ExecuteQuery(sql);
+                var details = new List<ServerSetting>();
+
+                if (dt is not null)
+                {
+                    foreach (DataRow row in dt.Rows)
+                    {
+                        details.Add(new ServerSetting
+                        {
+                            Name = row["PropertyName"]?.ToString() ?? "N/A",
+                            CurrentValue = row["Value"]?.ToString() ?? "N/A"
+                        });
+                    }
+                }
+                return details;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Database Configuration Access Error: {ex.Message}", "Configuration Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return new List<ServerSetting>();
+            }
+        }
+
+        public List<SqlSnippet> GetSnippetLibrary()
+        {
+            // These are examples; the list would be much longer in a final product.
+            return new List<SqlSnippet>
+            {
+                new SqlSnippet
+                {
+                    Title = "Find Large Tables (> 1GB)",
+                    Category = "Maintenance",
+                    Description = "Identifies the top 10 largest user tables in the database by space used, including indexes.",
+                    Code = @"SELECT TOP 10 
+                                t.name AS TableName, 
+                                SUM(p.reserved_page_count) * 8.0 / 1024 AS Reserved_MB
+                            FROM sys.tables t 
+                            JOIN sys.partitions p ON t.object_id = p.object_id
+                            GROUP BY t.name
+                            ORDER BY Reserved_MB DESC;"
+                },
+                new SqlSnippet
+                {
+                    Title = "View Query Plan Cache Usage",
+                    Category = "Performance",
+                    Description = "Shows total memory consumed by query plans in the instance.",
+                    Code = @"SELECT SUM(size_in_bytes) / 1024 / 1024 AS TotalCacheMB 
+                            FROM sys.dm_exec_cached_plans;"
+                },
+                new SqlSnippet
+                {
+                    Title = "Find All Blocking Sessions",
+                    Category = "Performance",
+                    Description = "Quickly identifies the head blocker and all sessions currently blocked by it. Run on the 'master' database.",
+                    Code = @"SELECT 
+                                t1.session_id AS Blocked_Session,
+                                t2.session_id AS Head_Blocker,
+                                t2.login_name,
+                                t2.host_name,
+                                t2.program_name,
+                                t2.status
+                            FROM sys.dm_exec_requests t1
+                            INNER JOIN sys.dm_exec_sessions t2 ON t1.blocking_session_id = t2.session_id
+                            WHERE t1.blocking_session_id != 0;"
+                },
+                new SqlSnippet
+                {
+                    Title = "Top 20 Expensive Queries (by CPU)",
+                    Category = "Performance",
+                    Description = "Retrieves the top 20 most CPU-intensive queries from the plan cache. Used for finding long-term resource hogs.",
+                    Code = @"SELECT TOP 20
+                                qs.execution_count,
+                                qs.total_worker_time AS Total_CPU_Time,
+                                qs.total_worker_time/qs.execution_count AS Avg_CPU_Time,
+                                SUBSTRING(st.text, (qs.statement_start_offset/2) + 1,
+                                    ((CASE qs.statement_end_offset
+                                        WHEN -1 THEN DATALENGTH(st.text)
+                                        ELSE qs.statement_end_offset
+                                    END - qs.statement_start_offset)/2) + 1) AS Statement_Text
+                            FROM sys.dm_exec_query_stats AS qs
+                            CROSS APPLY sys.dm_exec_sql_text(qs.sql_handle) AS st
+                            ORDER BY qs.total_worker_time DESC;"
+                },
+                new SqlSnippet
+                {
+                    Title = "Find Highly Fragmented Indexes",
+                    Category = "Maintenance",
+                    Description = "Lists indexes with high fragmentation levels (over 30%) that should be rebuilt. Run against the target database.",
+                    Code = @"SELECT 
+                                OBJECT_NAME(ips.object_id) AS TableName,
+                                i.name AS IndexName,
+                                ips.avg_fragmentation_in_percent,
+                                ips.page_count
+                            FROM sys.dm_db_index_physical_stats(DB_ID(), NULL, NULL, NULL, 'LIMITED') AS ips
+                            INNER JOIN sys.indexes AS i ON ips.object_id = i.object_id AND ips.index_id = i.index_id
+                            WHERE ips.avg_fragmentation_in_percent > 30.0 AND ips.index_type_desc = 'NONCLUSTERED'
+                            ORDER BY ips.avg_fragmentation_in_percent DESC;"
+                },
+                new SqlSnippet
+                {
+                    Title = "Database Free Space Report",
+                    Category = "Maintenance",
+                    Description = "Reports on the space utilization (data and log) for the current database, showing total size and remaining free space.",
+                    Code = @"SELECT 
+                                name AS FileName, 
+                                size/128.0 AS CurrentSizeMB, 
+                                size/128.0 - CAST(FILEPROPERTY(name, 'SpaceUsed') AS INT)/128.0 AS FreeSpaceMB, 
+                                physical_name AS FileLocation
+                            FROM sys.database_files;"
+                },
+                new SqlSnippet
+                {
+                    Title = "Audit Failed Login Attempts",
+                    Category = "Security",
+                    Description = "Queries the SQL Server Error Log to check for recent failed logins, including reason and source IP.",
+                    Code = @"EXEC sys.xp_readerrorlog 0, 1, N'Login failed';"
+                },
+                new SqlSnippet
+                {
+                    Title = "Check Database Role Membership",
+                    Category = "Security",
+                    Description = "Shows all users and the database roles they belong to (e.g., db_datareader, db_writer). Run against the target database.",
+                    Code = @"SELECT 
+                                dp.name AS DatabaseRole,
+                                CASE 
+                                    WHEN dp.principal_id < 0 THEN NULL
+                                    ELSE member.name
+                                END AS MemberName,
+                                member.type_desc AS MemberType
+                            FROM sys.database_role_members AS drm
+                            JOIN sys.database_principals AS dp ON drm.role_principal_id = dp.principal_id
+                            JOIN sys.database_principals AS member ON drm.member_principal_id = member.principal_id
+                            ORDER BY DatabaseRole, MemberName;"
+                },
+
+
+                // ... (Add more snippets here) ...
+            };
+        }
+
+        public string GetQueryExecutionPlan(string query)
+        {
+            // NOTE: This must use a non-pooled, dedicated connection to ensure SET SHOWPLAN_XML ON applies
+            // to the correct statement. We will use a dedicated connection instance.
+
+            string? connectionString = SqlConnectionManager.GetCurrentConnectionString();
+            if (string.IsNullOrEmpty(connectionString))
+            {
+                throw new InvalidOperationException("Connection not established.");
+            }
+
+            string planXml = "Plan could not be retrieved.";
+
+            try
+            {
+                using (var connection = new Microsoft.Data.SqlClient.SqlConnection(connectionString))
+                {
+                    connection.Open();
+
+                    // 1. Set the session to output XML plan instead of results
+                    using (var cmdPlanOn = new SqlCommand("SET SHOWPLAN_XML ON;", connection))
+                    {
+                        cmdPlanOn.ExecuteNonQuery();
+                    }
+
+                    // 2. Execute the user's query (this execution captures the XML plan)
+                    using (var cmdQuery = new SqlCommand(query, connection))
+                    {
+                        cmdQuery.CommandTimeout = 300; // Use long timeout for safety
+
+                        // Use ExecuteXmlReader to retrieve the XML plan content
+                        using (var reader = cmdQuery.ExecuteXmlReader())
+                        {
+                            if (reader.Read())
+                            {
+                                planXml = reader.ReadOuterXml();
+                            }
+                        }
+                    }
+
+                    // 3. Turn the plan setting OFF for the session
+                    using (var cmdPlanOff = new SqlCommand("SET SHOWPLAN_XML OFF;", connection))
+                    {
+                        cmdPlanOff.ExecuteNonQuery();
+                    }
+                }
+                return planXml;
+            }
+            catch (SqlException ex)
+            {
+                return $"ERROR retrieving plan. Details: {ex.Message}. Common causes: Incorrect syntax, or query requires elevated privileges (e.g., SELECT permissions).";
+            }
+            catch (Exception ex)
+            {
+                return $"ERROR: {ex.Message}";
+            }
+        }
+
+        public List<AvailabilityReplicaStatus> GetAvailabilityGroupStatus()
+        {
+            try
+            {
+                // T-SQL to query the primary AG DMVs (sys.dm_hadr_availability_replica_states).
+                string sql = @"
+                    SELECT
+                        ar.replica_server_name AS InstanceName,
+                        ars.role_desc AS Role,
+                        ars.synchronization_health_desc AS SynchronizationHealth,
+        
+                        -- CRITICAL FIX: Use the widely available synchronization_health_desc column 
+                        -- directly for the state description, and use a reliable CASE statement.
+                        CASE 
+                            WHEN ars.synchronization_health_desc = 'NOT_HEALTHY' THEN 'NOT_HEALTHY'
+                            WHEN ars.synchronization_health_desc = 'HEALTHY' THEN 'SYNCHRONIZED'
+                            ELSE 'SYNCHRONIZING' 
+                        END AS SynchronizationState, -- Use this alias for binding in C#
+        
+                        drs.log_send_queue_size AS LogSendQueueKB,
+                        drs.redo_queue_size AS RedoQueueKB
+                    FROM sys.dm_hadr_availability_replica_states ars
+                    INNER JOIN sys.availability_replicas ar ON ars.replica_id = ar.replica_id
+                    INNER JOIN sys.dm_hadr_database_replica_states drs ON ars.replica_id = drs.replica_id
+                    ORDER BY ars.role_desc DESC, ar.replica_server_name;";
+
+                // Note: AG DMVs are accessible from any user database.
+                DataTable dt = SqlConnectionManager.ExecuteQuery(sql);
+                var statusList = new List<AvailabilityReplicaStatus>();
+
+                if (dt is not null)
+                {
+                    foreach (DataRow row in dt.Rows)
+                    {
+                        statusList.Add(new AvailabilityReplicaStatus
+                        {
+                            InstanceName = row["InstanceName"]?.ToString() ?? "N/A",
+                            Role = row["Role"]?.ToString() ?? "N/A",
+                            SynchronizationHealth = row["SynchronizationHealth"]?.ToString() ?? "N/A",
+                            SynchronizationState = row["SynchronizationState"]?.ToString() ?? "N/A",
+                            // Safely convert large integer values, defaulting to 0
+                            LogSendQueueKB = (row["LogSendQueueKB"] is DBNull) ? 0 : Convert.ToInt64(row["LogSendQueueKB"]),
+                            RedoQueueKB = (row["RedoQueueKB"] is DBNull) ? 0 : Convert.ToInt64(row["RedoQueueKB"])
+                        });
+                    }
+                }
+                return statusList;
+            }
+            catch (Exception ex)
+            {
+                // This will often fail if AGs are not configured on the instance.
+                MessageBox.Show($"AG Status Error: {ex.Message}. Check if Always On is configured.", "HA Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return new List<AvailabilityReplicaStatus>();
+            }
+        }
+
+        public List<DriveSpaceInfo> GetDriveSpaceReport()
+        {
+            try
+            {
+                // 1. Get database file mapping (which database files reside on which drive)
+                string fileMappingSql = @"
+                    SELECT DISTINCT
+                        LEFT(physical_name, 1) AS Drive,
+                        name AS FileName,
+                        database_id,
+                        DB_NAME(database_id) AS DatabaseName
+                    FROM sys.master_files
+                    WHERE database_id > 4; -- Exclude system databases (master, model, msdb, tempdb)
+                ";
+
+                // 2. Get OS-level drive space using xp_fixeddrives
+                string freeSpaceSql = @"
+                    SELECT drive AS Drive, CAST([MB Free] AS BIGINT) AS MBFree 
+                    FROM xp_fixeddrives();
+                ";
+
+                DataTable fileDt = SqlConnectionManager.ExecuteQuery(fileMappingSql);
+                DataTable spaceDt = null;
+
+                try
+                {
+                    spaceDt = SqlConnectionManager.ExecuteQuery(freeSpaceSql);
+                }
+                catch (Exception ex)
+                {
+                    // If xp_fixeddrives fails (permissions), provide a fallback
+                    MessageBox.Show($"Warning: Drive space query failed. Displaying database file locations with WMI capacity data. Details: {ex.Message}", 
+                                    "Partial Data", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+
+                var driveMap = new Dictionary<string, List<string>>();
+                var spaceInfo = new List<DriveSpaceInfo>();
+
+                // --- Step 1: Get WMI drive capacity information ---
+                Dictionary<string, (decimal TotalGB, decimal FreeGB)> wmiDriveInfo = new();
+
+                try
+                {
+                    wmiDriveInfo = DriveSpaceHelper.GetDriveSpaceFromWMI();
+                }
+                catch (Exception ex)
+                {
+                    // WMI failed - will use xp_fixeddrives data only
+                    System.Diagnostics.Debug.WriteLine($"WMI query failed: {ex.Message}");
+                }
+
+                // --- Step 2: Map Database Files to Drives ---
+                if (fileDt is not null && fileDt.Rows.Count > 0)
+                {
+                    foreach (DataRow row in fileDt.Rows)
+                    {
+                        string drive = row["Drive"]?.ToString()?.ToUpper() ?? "UNKNOWN";
+                        string dbName = row["DatabaseName"]?.ToString() ?? "N/A";
+
+                        if (!driveMap.ContainsKey(drive))
+                        {
+                            driveMap[drive] = new List<string>();
+                        }
+                        if (!driveMap[drive].Contains(dbName))
+                        {
+                            driveMap[drive].Add(dbName);
+                        }
+                    }
+                }
+
+                // --- Step 3: Process Free Space from xp_fixeddrives and merge with WMI data ---
+                if (spaceDt is not null && spaceDt.Rows.Count > 0)
+                {
+                    foreach (DataRow row in spaceDt.Rows)
+                    {
+                        string drive = row["Drive"].ToString()?.ToUpper() ?? "N/A";
+                        if (drive == "N/A") continue;
+
+                        // Free space from xp_fixeddrives in MB
+                        long freeSpaceMB = Convert.ToInt64(row["MBFree"]);
+                        decimal freeSpaceGB = freeSpaceMB / 1024.0m; // Convert MB to GB
+
+                        // Get WMI data if available
+                        decimal totalCapacityGB = 0;
+                        decimal percentFree = 0;
+
+                        if (wmiDriveInfo.TryGetValue(drive + ":\\", out var wmiData))
+                        {
+                            totalCapacityGB = Math.Round(wmiData.TotalGB, 2);
+                            // Calculate percent free using WMI total capacity
+                            if (totalCapacityGB > 0)
+                            {
+                                percentFree = Math.Round((freeSpaceGB / totalCapacityGB) * 100, 2);
+                            }
+                        }
+
+                        spaceInfo.Add(new DriveSpaceInfo
+                        {
+                            DriveLetter = drive,
+                            TotalCapacityGB = totalCapacityGB,
+                            FreeSpaceGB = Math.Round(freeSpaceGB, 2),
+                            PercentFree = percentFree,
+                            DatabaseFiles = driveMap.ContainsKey(drive)
+                                ? string.Join(", ", driveMap[drive])
+                                : "None"
+                        });
+                    }
+                }
+                else if (wmiDriveInfo.Count > 0)
+                {
+                    // Fallback: Use WMI data if xp_fixeddrives failed
+                    foreach (var kvp in wmiDriveInfo)
+                    {
+                        string drive = kvp.Key.TrimEnd(':');
+
+                        spaceInfo.Add(new DriveSpaceInfo
+                        {
+                            DriveLetter = drive,
+                            TotalCapacityGB = Math.Round(kvp.Value.TotalGB, 2),
+                            FreeSpaceGB = Math.Round(kvp.Value.FreeGB, 2),
+                            PercentFree = kvp.Value.TotalGB > 0 
+                                ? Math.Round((kvp.Value.FreeGB / kvp.Value.TotalGB) * 100, 2)
+                                : 0,
+                            DatabaseFiles = driveMap.ContainsKey(drive)
+                                ? string.Join(", ", driveMap[drive])
+                                : "None"
+                        });
+                    }
+                }
+                else if (driveMap.Count > 0)
+                {
+                    // Last fallback: If both xp_fixeddrives and WMI failed but we have database files
+                    foreach (var kvp in driveMap)
+                    {
+                        spaceInfo.Add(new DriveSpaceInfo
+                        {
+                            DriveLetter = kvp.Key,
+                            TotalCapacityGB = 0,
+                            FreeSpaceGB = 0,
+                            PercentFree = 0,
+                            DatabaseFiles = string.Join(", ", kvp.Value)
+                        });
+                    }
+                }
+
+                // If still no data, return a message row
+                if (spaceInfo.Count == 0)
+                {
+                    spaceInfo.Add(new DriveSpaceInfo
+                    {
+                        DriveLetter = "N/A",
+                        TotalCapacityGB = 0,
+                        FreeSpaceGB = 0,
+                        PercentFree = 0,
+                        DatabaseFiles = "No data available. Check xp_fixeddrives permissions or WMI access."
+                    });
+                }
+
+                return spaceInfo;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Drive Space Access Error: {ex.Message}. Check xp_fixeddrives and WMI permissions.", "Capacity Planning Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return new List<DriveSpaceInfo>
+                {
+                    new DriveSpaceInfo
+                    {
+                        DriveLetter = "ERROR",
+                        TotalCapacityGB = 0,
+                        FreeSpaceGB = 0,
+                        PercentFree = 0,
+                        DatabaseFiles = $"Error: {ex.Message}"
+                    }
+                };
+            }
+        }
 
 
     }

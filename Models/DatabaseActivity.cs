@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace DatabaseVisualizer.Models
+namespace SQLAtlas.Models
 {
     public class DatabaseActivity
     {

@@ -1,9 +1,8 @@
 ﻿// ExplorerWindow.xaml.cs
-
-using DatabaseVisualizer.Data;
-using DatabaseVisualizer.Models;
-using DatabaseVisualizer.Services;
-using DatabaseVisualizer.Views;
+using SQLAtlas.Data;
+using SQLAtlas.Models;
+using SQLAtlas.Services;
+using SQLAtlas.Views;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -12,8 +11,9 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
+using System.Reflection;
 
-namespace DatabaseVisualizer
+namespace SQLAtlas
 {
     public partial class ExplorerWindow : Window
     {
@@ -32,16 +32,28 @@ namespace DatabaseVisualizer
         {
             InitializeComponent();
 
-            // 1. Initial Data Setup (Safe assignment of schema data)
+            // 1. Initial Data Setup
             _allGroupedObjects = groupedObjects ?? new Dictionary<string, List<DatabaseObject>>();
-            LoadSchemaCollection(_allGroupedObjects); // Initialize the collection view
+            
+            int objectCount = _allGroupedObjects.Sum(g => g.Value.Count);
+            if (objectCount == 0)
+            {
+                MessageBox.Show("Warning: No database objects were loaded. The sidebar will be empty.", "Data Load Warning");
+            }
+            
+            LoadSchemaCollection(_allGroupedObjects);
 
             // 2. Set Status Bar and Version Info
-            VersionNumberTextBlock.Text = "v0.8.0";
-            VersionDateTextBlock.Text = $"{DateTime.Now:yyyy-MM-dd}";
-            CurrentDatabaseTextBlock.Text = $"DB: {databaseName ?? "N/A"} ({serverName ?? "N/A"})";
+            Version? appVersion = Assembly.GetExecutingAssembly().GetName().Version;
+            VersionNumberTextBlock.Text = $"v{appVersion?.ToString() ?? "N/A"}";
+            VersionDateTextBlock.Text = $"Build: {DateTime.Now:yyyy-MM-dd}";
 
-            // 3. Set Initial UI State: Select the first ribbon tab to trigger content load
+            //VersionNumberTextBlock.Text = "v0.8.5";
+            //VersionDateTextBlock.Text = $"{DateTime.Now:yyyy-MM-dd}";
+
+            CurrentDatabaseStatusBlock.Text = $"DB: {databaseName ?? "N/A"} on {serverName ?? "N/A"}";
+
+            // 3. Set Initial UI State
             if (RibbonMenu.Items.Count > 0)
             {
                 RibbonMenu.SelectedIndex = 0;
@@ -81,7 +93,7 @@ namespace DatabaseVisualizer
                 MainContentHost.Content = null;
 
                 // 2. Clear any lingering selection in the sidebar list
-                SchemaListBox.SelectedItem = null;
+                SidebarListBox.SelectedItem = null;
 
                 string header = selectedTab.Header.ToString() ?? string.Empty;
                 LoadSidebarContent(header);
@@ -93,54 +105,26 @@ namespace DatabaseVisualizer
         /// </summary>
         private void LoadSidebarContent(string category)
         {
+            SidebarListBox.SelectedItem = null; // Clear any previous selection
 
-            // --- ROUTE CONTENT ---
+            // --- ROUTE OBJECTS VS TOOLS ---
             if (category == "Schema Explorer")
             {
+                // Display the grouped schema list
                 SidebarHeaderTextBlock.Text = "SELECT SCHEMA OBJECT";
-
-                // FIX: Show Schema List, Hide Tools List
-                SchemaScrollViewer.Visibility = Visibility.Visible;
-                ToolsScrollViewer.Visibility = Visibility.Collapsed;
-
-                // Assign the grouped view to the Schema ListBox
-                SchemaListBox.ItemsSource = _schemaObjectCollectionView;
+                SidebarListBox.ItemsSource = _schemaObjectCollectionView;
                 SidebarSearchTextBox.Visibility = Visibility.Visible;
-                SearchIconTextBlock.Visibility = Visibility.Visible; // <<< SHOW ICON
             }
             else
             {
-                // FIX: Show Tools List, Hide Schema List
-                SidebarHeaderTextBlock.Text = $"TOOLS FOR {category.ToUpper()}";
-                SchemaScrollViewer.Visibility = Visibility.Collapsed;
-                ToolsScrollViewer.Visibility = Visibility.Visible;
-
+                // Display the fixed list of diagnostic tools
+                SidebarHeaderTextBlock.Text = $"SELECT TOOL ({category.ToUpper()})";
                 List<string> toolItems = GetToolsListForCategory(category);
-                // Assign the simple list of strings to the dedicated Tools ListBox
-                ToolsListBox.ItemsSource = toolItems;
+                
+                // CRITICAL FIX: Assign directly without grouping
+                SidebarListBox.ItemsSource = toolItems;
                 SidebarSearchTextBox.Visibility = Visibility.Collapsed;
-                SearchIconTextBlock.Visibility = Visibility.Collapsed; // <<< HIDE ICON
             }
-        }
-
-        /// <summary>
-        /// Initializes the master list of database objects and the CollectionView for filtering.
-        /// </summary>
-        private void LoadObjectListBox(Dictionary<string, List<DatabaseObject>> groupedObjects)
-        {
-            var flatList = groupedObjects.SelectMany(g => g.Value).ToList();
-
-            // Get the collection view and store it for filtering
-            ICollectionView view = CollectionViewSource.GetDefaultView(flatList);
-            _schemaObjectCollectionView = view;
-
-            // Apply grouping
-            if (_schemaObjectCollectionView is not null && _schemaObjectCollectionView.CanGroup == true)
-            {
-                _schemaObjectCollectionView.GroupDescriptions.Clear();
-                _schemaObjectCollectionView.GroupDescriptions.Add(new PropertyGroupDescription("TypeDescription"));
-            }
-            // We do NOT assign ItemSource here; the RibbonMenu_SelectionChanged handler does that.
         }
 
         /// <summary>
@@ -148,110 +132,66 @@ namespace DatabaseVisualizer
         /// </summary>
         private List<string> GetToolsListForCategory(string category)
         {
-            // Use a Dictionary or a robust switch expression for clear routing
             return category switch
             {
-                // Category 1: Schema Explorer (Handled by different logic, but included here for completeness)
-                "Schema Explorer" => new List<string>(),
-
-                // Category 2: Performance (Each item loads a specific, distinct View)
-                "Performance" => new List<string>
-                    {
-                        "Active Running Queries",
-                        "Top Expensive Queries",
-                        "Wait Statistics",
-                        "Blocking Monitor"
-                    },
-
-                // Category 3: Security & User Management Tools
-                "Security" => new List<string>
-                    {
-                        "User/Role/Permission Manager",
-                        "Security Audit Log Viewer",
-                        "Data Masking Manager"
-                    },
-
-                // Category 4: Maintenance (Includes Index Features)
-                "Maintenance" => new List<string>
-                    {
-                        "Backup History & Restore",
-                        "Job Scheduling/Agent Manager",
-                        "Index Optimization Advisor",   
-                        "Missing Index Recommendations"
-                    },
-
-                // Category 5: Configuration & Utility Tools
-                "Configuration" => new List<string>
-                    {
-                        "Server/Database Configuration Editor"
-                    },
-
-                // Category 6: Design & Development Tools
-                "Design & Dev" => new List<string>
-                    {
-                        "Schema Comparison and Synchronization",
-                        "SQL Snippet/Template Library",
-                        "Query Execution Plan Visualizer"
-                    },
-
-                // Category 7: High Availability Tools
-                "High Availability" => new List<string>
-                    {
-                        "High Availability Status Dashboard"
-                    },
-
-                "General Info" => new List<string>
-                    {
-                        "Server & Database Details" 
-                    },
-
-            // Final Fallback
-            _ => new List<string> { "No tools defined for this category." },
+                "Performance" => new List<string> 
+                { 
+                    "Active Running Queries",
+                    "Top Expensive Queries",
+                    "Wait Statistics",
+                    "Blocking Monitor"
+                },
+                "Security" => new List<string> 
+                { 
+                    "User/Role/Permission Manager",
+                    "Security Audit Log Viewer",
+                    "Data Masking Manager"
+                },
+                "Maintenance" => new List<string> 
+                { 
+                    "Backup History & Restore",
+                    "Job Scheduling/Agent Manager",
+                    "Index Optimization Advisor",
+                    "Missing Index Recommendations"
+                },
+                "Configuration" => new List<string> 
+                {
+                    "Server & Database Details",
+                    "Server/Database Configuration Editor",
+                    "Drive Space and Growth Monitor"
+                },
+                "Design and Dev" => new List<string> 
+                { 
+                    "Schema Comparison & Synchronization",
+                    "SQL Snippet/Template Library",
+                    "Query Execution Plan Visualizer"
+                },
+                "High Availability" => new List<string> 
+                { 
+                    "High Availability Status Dashboard",
+                },
+                _ => new List<string> { "No tools available." },
             };
         }
 
         // --- DYNAMIC CONTENT HOST ROUTING ---
 
-        private void SchemaListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        /// <summary>
+        /// Routes the selected sidebar item to the main Content Host.
+        /// </summary>
+        private void SidebarListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            // Reset tool selection to prevent conflicts
-            ToolsListBox.SelectedItem = null;
-
-            // 1. Get Selected Objects (Defensive Casting)
-            // CRITICAL FIX: Reference SchemaListBox instead of the ambiguous name
-            var selectedObjects = SchemaListBox.SelectedItems.Cast<object>().OfType<DatabaseObject>().ToList();
-            var selectedTables = selectedObjects.Where(o => o.Type.ToUpperInvariant() == "U").ToList();
-
-            // 2. --- Multi-Select Logic (FK Check) ---
-            if (selectedTables.Count >= 2)
+            if (SidebarListBox.SelectedItem is DatabaseObject dbObject)
             {
-                LoadMetadataView(selectedTables, isMultiSelect: true);
-                return;
+                // Routing for selected database objects (Tables/Views/Procs)
+                LoadMetadataView(new List<DatabaseObject> { dbObject }, isMultiSelect: false);
             }
-
-            // 3. --- Single Select or Deselect ---
-            if (selectedObjects.Count == 1)
+            else if (SidebarListBox.SelectedItem is string selectedTool)
             {
-                // Passes the single selected object
-                LoadMetadataView(new List<DatabaseObject> { selectedObjects.First() }, isMultiSelect: false);
-            }
-            else
-            {
-                // Deselection or invalid mix (cleanup display)
-                MainContentHost.Content = new ActivityView();
-            }
-        }
-
-        private void ToolsListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            // Clear schema selection to prevent conflicts
-            SchemaListBox.SelectedItem = null;
-
-            if (ToolsListBox.SelectedItem is string selectedTool)
-            {
-                // Route the selected tool string to the diagnostic view loader
+                // Routing for selected diagnostic tool
                 LoadDiagnosticView(selectedTool);
             }
+            // If neither, do nothing - user hasn't selected anything yet
         }
 
         /// <summary>
@@ -262,29 +202,42 @@ namespace DatabaseVisualizer
             UserControl? newView = viewName switch
             {
                 // Map the tool name from the ListBox to the correct View class
-                "Activity & Storage" => new ActivityView(), // Use ActivityView as the default state if needed
-                "Performance" => new PerformanceView(),
-                "Top Query Analysis" => new PerformanceView(), // PerformanceView handles query analysis
-                //"Index Optimization Advisor" => new IndexView(),
-                "Security Permissions" => new SecurityView(),
+                // Performance Tools
                 "Active Running Queries" => new ActiveQueriesView(),
                 "Top Expensive Queries" => new ExpensiveQueriesView(),
                 "Wait Statistics" => new WaitStatsView(),
                 "Blocking Monitor" => new BlockingChainView(),
-                "User/Role/Permission Manager" => new UserRoleView(),
-                "Security Audit Log Viewer" => new AuditLogView(),
+                // Security Tools
+                "User/Role/Permission Manager" => new Views.UserRoleView(),
+                "Security Audit Log Viewer" => new Views.AuditLogView(),
                 "Data Masking Manager" => new Views.DataMaskingView(),
-                "Server & Database Details" => new ServerInfoView(),
-                "Backup History & Restore" => new Views.BackupRestoreView(),
-                "Job Scheduling/Agent Manager" => new Views.JobManagerView(),
+                //Maintenance Tools
                 "Index Optimization Advisor" => new Views.IndexOptimizationView(),
                 "Missing Index Recommendations" => new Views.MissingIndexView(),
-                // Add cases for Backup, Config, etc.
+                "Backup History & Restore" => new Views.BackupRestoreView(),
+                "Job Scheduling/Agent Manager" => new Views.JobManagerView(),
+                //Configuration Tools
+                "Server & Database Details" => new ServerInfoView(),
+                "Server/Database Configuration Editor" => new ConfigurationEditorView(),
+                "Drive Space and Growth Monitor" => new Views.DriveSpaceView(),
+                //Design and Dev Tools
+                "Schema Comparison & Synchronization" => new Views.SchemaCompareView(),
+                "SQL Snippet/Template Library" => new Views.SnippetLibraryView(),
+                "Query Execution Plan Visualizer" => new Views.QueryPlanView(),
+                //High Availability Tools
+                "High Availability Status Dashboard" => new Views.HighAvailabilityView(),
+
+                // MISC TOOLS              
+                "Activity & Storage" => new ActivityView(),
+                "Security Permissions" => new SecurityView(),
+                "Performance" => new PerformanceView(),
+                "Top Query Analysis" => new PerformanceView(),
+                //"Index Optimization Advisor" => new IndexView(), -- THIS NEEDS TO BE DELETED
                 _ => null,
             };
 
             // Fallback ensures ContentHost always receives a valid object
-            MainContentHost.Content = newView ?? new UserControl { Content = new TextBlock { Text = $"Select a tool from the {viewName} category." } };
+            MainContentHost.Content = newView ?? new UserControl { Content = new TextBlock { Text = $"View for '{viewName}' not found." } };
         }
 
         /// <summary>

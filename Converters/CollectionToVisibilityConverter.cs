@@ -6,7 +6,7 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
 
-namespace DatabaseVisualizer.Converters
+namespace SQLAtlas.Converters
 {
     public class CollectionToVisibilityConverter : IValueConverter
     {

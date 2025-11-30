@@ -11,11 +11,8 @@
     <UseWPF>true</UseWPF>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <ApplicationIcon>Images\Database Visualizer Logo.ico</ApplicationIcon>
+    <Version>0.8.5</Version>
   </PropertyGroup>
-
-  <ItemGroup>
-    <None Remove="Images\Database Visualizer Logo.png" />
-  </ItemGroup>
 
   <ItemGroup>
     <Content Include="Images\Database Visualizer Logo.ico" />
@@ -23,10 +20,11 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.2" />
+    <PackageReference Include="System.Management" Version="10.0.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <Resource Include="Images\Database Visualizer Logo.png" />
+    <Resource Include="Images\SQLAtlasLogo.png" />
   </ItemGroup>
 
 </Project>

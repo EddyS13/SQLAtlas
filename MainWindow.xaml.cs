@@ -1,9 +1,9 @@
-﻿using DatabaseVisualizer.Data;
-using DatabaseVisualizer.Services;
+﻿using SQLAtlas.Data;
+using SQLAtlas.Services;
 using System.Windows;
 using System.Windows.Input;
 
-namespace DatabaseVisualizer
+namespace SQLAtlas
 {
     public partial class MainWindow : Window
     {
@@ -51,14 +51,23 @@ namespace DatabaseVisualizer
 
                 if (groupedObjects != null && groupedObjects.Count > 0)
                 {
-                    // Pass connection info for Status Bar display
-                    var explorerWindow = new ExplorerWindow(
-                        groupedObjects,
-                        ServerNameTextBox.Text,
-                        DatabaseNameTextBox.Text);
+                    try
+                    {
+                        // Pass connection info for Status Bar display
+                        var explorerWindow = new ExplorerWindow(
+                            groupedObjects,
+                            ServerNameTextBox.Text,
+                            DatabaseNameTextBox.Text);
 
-                    explorerWindow.Show();
-                    this.Close();
+                        explorerWindow.Show();
+                        this.Close();
+                    }
+                    catch (Exception ex)
+                    {
+                        StatusTextBlock.Text = $"Error loading explorer window: {ex.Message}";
+                        StatusTextBlock.Foreground = System.Windows.Media.Brushes.Red;
+                        ConnectButton.IsEnabled = true;
+                    }
                 }
                 else
                 {

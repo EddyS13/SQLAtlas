@@ -1,7 +1,7 @@
-﻿<Window x:Class="DatabaseVisualizer.MainWindow"
+﻿<Window x:Class="SQLAtlas.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="DatabaseVisualizer - Connect" 
+        Title="SQLAtlas - Connect" 
         Height="550" 
         Width="700"
         WindowStartupLocation="CenterScreen"
@@ -29,14 +29,12 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Left">
-                    <Image Source="/DatabaseVisualizer;component/Images/Database Visualizer Logo.png" 
-                   Width="50" Height="50" Margin="0,0,10,0"
-                   RenderOptions.BitmapScalingMode="HighQuality"/>
-                    <TextBlock Text="DATABASE VISUALIZER" 
+                    <Image Source="pack://application:,,,/Images/SQLAtlasLogo.png" Width="50" Height="50" Margin="0,0,8,0" RenderOptions.BitmapScalingMode="HighQuality"/>
+                    <TextBlock Text="SQL Atlas" 
                        Foreground="{StaticResource AccentColor}" 
                        FontSize="28" 
                        FontWeight="ExtraBold" 
-                       FontFamily="/DatabaseVisualizer;component/Fonts/#Roboto"
+                       FontFamily="/SQLAtlas;component/Fonts/#Roboto"
                        VerticalAlignment="Center"/>
                 </StackPanel>
 

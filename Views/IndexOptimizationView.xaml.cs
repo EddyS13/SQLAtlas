@@ -1,8 +1,8 @@
 ﻿// Views/IndexOptimizationView.xaml.cs
 
-using DatabaseVisualizer.Models;
-using DatabaseVisualizer.Services;
-using DatabaseVisualizer.Utilities;
+using SQLAtlas.Models;
+using SQLAtlas.Services;
+using SQLAtlas.Utilities;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -10,7 +10,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 
-namespace DatabaseVisualizer.Views
+namespace SQLAtlas.Views
 {
     public partial class IndexOptimizationView : UserControl
     {

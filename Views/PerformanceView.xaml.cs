@@ -1,14 +1,14 @@
 ﻿// Views/PerformanceView.xaml.cs
 
-using DatabaseVisualizer.Models;
-using DatabaseVisualizer.Services;
+using SQLAtlas.Models;
+using SQLAtlas.Services;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 
-namespace DatabaseVisualizer.Views
+namespace SQLAtlas.Views
 {
     public partial class PerformanceView : UserControl
     {

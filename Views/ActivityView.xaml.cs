@@ -2,14 +2,14 @@
 
 using System.Windows.Controls;
 using System.Windows;
-using DatabaseVisualizer.Services;
+using SQLAtlas.Services;
 using System;
 using System.Threading.Tasks;
 using System.Windows.Input; // Required for MouseWheelEventArgs
 using System.Linq; // Required for LINQ extensions
 using System.Windows.Media; // Required for VisualTreeHelper
 
-namespace DatabaseVisualizer.Views
+namespace SQLAtlas.Views
 {
     public partial class ActivityView : UserControl
     {

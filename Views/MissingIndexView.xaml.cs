@@ -1,7 +1,7 @@
 ﻿// Views/MissingIndexView.xaml.cs
 
-using DatabaseVisualizer.Services;
-using DatabaseVisualizer.Utilities;
+using SQLAtlas.Services;
+using SQLAtlas.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,7 +10,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 
-namespace DatabaseVisualizer.Views
+namespace SQLAtlas.Views
 {
     public partial class MissingIndexView : UserControl
     {

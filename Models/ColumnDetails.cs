@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 // Models/ColumnDetails.cs
 
-namespace DatabaseVisualizer.Models
+namespace SQLAtlas.Models
 {
     public class ColumnDetails
     {

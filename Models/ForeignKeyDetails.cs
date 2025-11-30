@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 // Models/ForeignKeyDetails.cs
 
-namespace DatabaseVisualizer.Models
+namespace SQLAtlas.Models
 {
     // Represents a single foreign key constraint link between two columns/tables
     public class ForeignKeyDetails

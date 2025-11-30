@@ -2,16 +2,16 @@
 
 using System.Windows.Controls;
 using System.Windows;
-using DatabaseVisualizer.Services;
+using SQLAtlas.Services;
 using System;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Input;
-using DatabaseVisualizer.Models;
-using DatabaseVisualizer.Utilities; // Assumed namespace for helper methods
+using SQLAtlas.Models;
+using SQLAtlas.Utilities; // Assumed namespace for helper methods
 
-namespace DatabaseVisualizer.Views
+namespace SQLAtlas.Views
 {
     public partial class IndexView : UserControl
     {

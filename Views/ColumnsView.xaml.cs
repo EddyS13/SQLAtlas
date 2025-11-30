@@ -1,13 +1,13 @@
 ﻿// Views/ColumnsView.xaml.cs
 
 using System.Windows.Controls;
-using DatabaseVisualizer.Models;
-using DatabaseVisualizer.Services;
+using SQLAtlas.Models;
+using SQLAtlas.Services;
 using System.Windows;
 using System.Threading.Tasks;
 using System.Collections.Generic; // Required for List<DatabaseObject>
 
-namespace DatabaseVisualizer.Views
+namespace SQLAtlas.Views
 {
     public partial class ColumnsView : UserControl
     {

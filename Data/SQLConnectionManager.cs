@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.Data.SqlClient;
 using System.Collections.Generic;
 
-namespace DatabaseVisualizer.Data
+namespace SQLAtlas.Data
 {
     public static class SqlConnectionManager
     {
@@ -156,6 +156,16 @@ namespace DatabaseVisualizer.Data
                 // CRITICAL FIX: Use null-forgiving operator (!)
                 return null!;
             }
+        }
+
+        /// <summary>
+        /// Gets the current active connection string.
+        /// </summary>
+        public static string? GetCurrentConnectionString()
+        {
+            // Return the current active connection string
+            // This should retrieve the connection string used for the current connected database
+            return _connectionString; // or however you store it
         }
 
     }
