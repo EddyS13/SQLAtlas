@@ -46,7 +46,7 @@ namespace SQLAtlas.Data
         /// <summary>
         /// Executes a query and returns the single value in the first column of the first row (e.g., OBJECT_ID, COUNT).
         /// </summary>
-        public static object? ExecuteScalar(string sqlQuery)
+        public static object? ExecuteScalar(string sqlQuery, Dictionary<string, object> idParameters)
         {
             if (string.IsNullOrEmpty(_connectionString))
             {

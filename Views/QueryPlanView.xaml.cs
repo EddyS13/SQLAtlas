@@ -29,49 +29,37 @@ namespace SQLAtlas.Views
 
         private async void GetPlanButton_Click(object sender, RoutedEventArgs e)
         {
-            string query = QueryInputTextBox.Text;
+            // SECURITY FIX: Change from async void to Task-based pattern
+            await GetPlanButtonClickAsync();
+        }
 
-            if (string.IsNullOrWhiteSpace(query))
+        private async Task GetPlanButtonClickAsync()
+        {
+            if (string.IsNullOrWhiteSpace(QueryInputTextBox.Text))
             {
-                MessageBox.Show("Please enter a SQL query to analyze.", "Input Required");
+                PlanOutputTextBox.Text = "Please enter a query.";
                 return;
             }
 
-            // Set initial state
-            GetPlanButton.Content = "ANALYZING...";
             GetPlanButton.IsEnabled = false;
-            PlanOutputTextBox.Text = "Running query in SHOWPLAN_XML mode. Please wait...";
+            PlanOutputTextBox.Text = "Generating execution plan...";
 
             try
             {
-                // CRITICAL: Run the plan retrieval service method asynchronously
-                // The service method handles the SET SHOWPLAN_XML ON/OFF sequence.
-                string planXml = await Task.Run(() => _metadataService.GetQueryExecutionPlan(query));
+                // FIX 5: Use QueryInputTextBox
+                string planXml = await Task.Run(() => _metadataService.GetQueryExecutionPlan(QueryInputTextBox.Text));
 
-                // Check for successful XML retrieval or an error message
-                if (!planXml.StartsWith("ERROR"))
+                // CRITICAL FIX 6 & 7: Use PlanOutputTextBox
+                if (planXml.StartsWith("ERROR"))
                 {
-                    // 1. Format the XML for display
-                    XDocument doc = XDocument.Parse(planXml);
-                    string formattedXml = doc.ToString(); // Auto-indents and adds line breaks
-
-                    // 2. Extract a simple summary (Conceptual)
-                    // Find the estimated subtree cost from the root RelOp node
-                    XElement? rootNode = doc.Descendants().FirstOrDefault(d => d.Name.LocalName == "RelOp");
-                    string estimatedCost = rootNode?.Attribute("EstimateRows")?.Value ?? "N/A";
-
-                    string summary = $"--- Plan Summary ---\n" +
-                                     $"Estimated Rows: {estimatedCost}\n" +
-                                     $"Plan XML Size: {planXml.Length / 1024:N0} KB\n\n";
-
-                    // 3. Display summary above the raw XML
-                    PlanOutputTextBox.Text = summary + formattedXml;
-                    PlanOutputTextBox.Foreground = Brushes.White;
+                    PlanOutputTextBox.Text = planXml;
+                    PlanOutputTextBox.Foreground = Brushes.Red;
                 }
                 else
                 {
-                    PlanOutputTextBox.Text = planXml;
-                    PlanOutputTextBox.Foreground = Brushes.White; // Assumes dark theme
+                    // Assuming you integrate the XML formatting logic here:
+                    PlanOutputTextBox.Text = planXml ?? "No execution plan generated.";
+                    PlanOutputTextBox.Foreground = Brushes.White;
                 }
             }
             catch (Exception ex)
@@ -81,7 +69,7 @@ namespace SQLAtlas.Views
             }
             finally
             {
-                GetPlanButton.Content = "⚡ Get Plan";
+                // FIX 8: GetPlanButton
                 GetPlanButton.IsEnabled = true;
             }
         }

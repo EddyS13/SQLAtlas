@@ -71,7 +71,9 @@ namespace SQLAtlas.Views
                 }
 
                 // Final Feedback
-                IndexStatusTextBlock.Text = $"Analysis Complete. Found {missingIndexList.Count} recommendations.";
+                int count = missingIndexList?.Count ?? 0;
+
+                IndexStatusTextBlock.Text = $"Analysis Complete. Found {count} recommendations.";
                 RefreshIndexButton.Content = $"Refresh Index Analysis ({DateTime.Now:T})";
             }
             catch (Exception ex)

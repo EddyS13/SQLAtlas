@@ -11,7 +11,7 @@
     <UseWPF>true</UseWPF>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <ApplicationIcon>Images\Database Visualizer Logo.ico</ApplicationIcon>
-    <Version>0.8.5</Version>
+    <Version>0.8.6</Version>
   </PropertyGroup>
 
   <ItemGroup>
@@ -26,5 +26,9 @@
   <ItemGroup>
     <Resource Include="Images\SQLAtlasLogo.png" />
   </ItemGroup>
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="set SOURCE_DIR=$(TargetDir)&#xA;set DEST_DIR=$(TargetDir)lib&#xA;&#xA;REM --- Clean up the path: Remove trailing backslash if present ---&#xA;IF &quot;%25SOURCE_DIR:~-1%25&quot;==&quot;\&quot; SET SOURCE_DIR=%25SOURCE_DIR:~0,-1%25&#xA;&#xA;IF NOT EXIST &quot;%25DEST_DIR%25&quot; mkdir &quot;%25DEST_DIR%25&quot;&#xA;&#xA;REM --- ROBOCOPY command ---&#xA;REM NOTE: We only move DLLs/PDBs (dependencies) and leave the main EXE in the root.&#xA;ROBOCOPY &quot;%25SOURCE_DIR%25&quot; &quot;%25DEST_DIR%25&quot; *.dll *.pdb /NFL /NDL /NJH /NJS /MOVE&#xA;IF %25ERRORLEVEL%25 LEQ 7 EXIT 0 ELSE EXIT 1" />
+  </Target>
 
 </Project>

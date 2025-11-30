@@ -4,6 +4,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using SQLAtlas.Data;
 using SQLAtlas.Models;
+using SQLAtlas.Services;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -124,7 +125,8 @@ namespace SQLAtlas.Services
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Column Data Processing Error: {ex.Message}", "Fatal Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                System.Diagnostics.Debug.WriteLine($"Column Data Processing Error: {ex.Message}");
+                MessageBox.Show("Failed to retrieve column details. Please try again.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return new List<ColumnDetails>();
             }
         }
@@ -243,21 +245,37 @@ namespace SQLAtlas.Services
             }
         }
 
+        // CRITICAL FIX #1: GetObjectDetails() - SQL Injection
         public ProcedureDetails GetObjectDetails(string schemaName, string objectName)
         {
+            // SECURITY: Validate inputs
+            if (string.IsNullOrWhiteSpace(schemaName) || string.IsNullOrWhiteSpace(objectName))
+            {
+                return new ProcedureDetails 
+                { 
+                    Definition = "ERROR: Invalid schema or object name.",
+                    Parameters = new List<ProcedureParameter>()
+                };
+            }
+
             string qualifiedName = $"[{schemaName}].[{objectName}]";
 
-            // 1. Get Definition and Dates
-            string defSql = $@"
+            // 1. Get Definition and Dates - NOW USING PARAMETERIZED QUERY
+            string defSql = @"
                 SELECT 
                     m.definition AS Definition,
                     o.create_date AS CreateDate,
                     o.modify_date AS ModifyDate
                 FROM sys.sql_modules m
                 INNER JOIN sys.objects o ON m.object_id = o.object_id
-                WHERE m.object_id = OBJECT_ID('{qualifiedName}')";
+                WHERE m.object_id = OBJECT_ID(@QualifiedName)";
 
-            DataTable defDt = SqlConnectionManager.ExecuteQuery(defSql);
+            var parameters = new Dictionary<string, object>
+            {
+                { "@QualifiedName", qualifiedName }
+            };
+
+            DataTable defDt = SqlConnectionManager.ExecuteQuery(defSql, parameters);
 
             // Initialize with defaults
             string definition = "DEFINITION NOT FOUND";
@@ -266,22 +284,17 @@ namespace SQLAtlas.Services
 
             if (defDt is not null && defDt.Rows.Count > 0)
             {
-                // Retrieve the raw object value for the definition
                 object definitionValue = defDt.Rows[0]["Definition"];
 
-                if (definitionValue is DBNull) // Check if the object is the specific DBNull sentinel
+                if (definitionValue is DBNull)
                 {
-                    // Value is null in the database, usually meaning the object is encrypted
                     definition = "DEFINITION IS ENCRYPTED";
                 }
                 else
                 {
-                    // Value is present; convert it to string using the null-coalescing operator
-                    // to handle any unlikely reference null before assignment.
                     definition = definitionValue.ToString() ?? "DEFINITION NOT FOUND";
                 }
 
-                // Date parsing logic (remains mostly the same, using null checks for safety)
                 object createDateValue = defDt.Rows[0]["CreateDate"];
                 object modifyDateValue = defDt.Rows[0]["ModifyDate"];
 
@@ -294,22 +307,27 @@ namespace SQLAtlas.Services
                              : DateTime.MinValue;
             }
 
-            // 2. Get Parameters
-            string paramSql = $@"
+            // 2. Get Parameters - NOW USING PARAMETERIZED QUERY
+            string paramSql = @"
                 SELECT p.name AS Name, t.name AS DataType
                 FROM sys.parameters p
                 INNER JOIN sys.types t ON p.system_type_id = t.system_type_id
-                WHERE p.object_id = OBJECT_ID('{qualifiedName}')
+                WHERE p.object_id = OBJECT_ID(@QualifiedName)
                 ORDER BY p.parameter_id;";
 
-            DataTable paramDt = SqlConnectionManager.ExecuteQuery(paramSql);
-            var parameters = new List<ProcedureParameter>();
+            var paramParameters = new Dictionary<string, object>
+            {
+                { "@QualifiedName", qualifiedName }
+            };
+
+            DataTable paramDt = SqlConnectionManager.ExecuteQuery(paramSql, paramParameters);
+            var procParameters = new List<ProcedureParameter>();
 
             if (paramDt != null)
             {
                 foreach (DataRow row in paramDt.Rows)
                 {
-                    parameters.Add(new ProcedureParameter
+                    procParameters.Add(new ProcedureParameter
                     {
                         Name = row["Name"]?.ToString() ?? string.Empty,
                         DataType = row["DataType"]?.ToString() ?? string.Empty,
@@ -320,7 +338,7 @@ namespace SQLAtlas.Services
             return new ProcedureDetails
             {
                 Definition = definition,
-                Parameters = parameters,
+                Parameters = procParameters,
                 CreateDate = createDate,
                 ModifyDate = modifyDate
             };
@@ -330,23 +348,30 @@ namespace SQLAtlas.Services
         {
             try
             {
-                string qualifiedName = $"[{schemaName}].[{objectName}]";
-
-                // 1. Safely retrieve the Object ID (The query must return only the ID)
-                string objectIdSql = $"SELECT OBJECT_ID('{qualifiedName}')";
-                object? objectIdResult = SqlConnectionManager.ExecuteScalar(objectIdSql);
-
-                // 2. Check if the ID is valid and not null
-                if (objectIdResult is null || objectIdResult is DBNull)
+                // SECURITY: Validate inputs
+                if (string.IsNullOrWhiteSpace(schemaName) || string.IsNullOrWhiteSpace(objectName))
                 {
-                    // If the object is not found, we cannot run the dependency query.
                     return new List<Dependency>();
                 }
 
-                // 3. Convert the object result to the correct integer type for filtering
+                string qualifiedName = $"[{schemaName}].[{objectName}]";
+
+                // FIXED: Use parameterized query instead of string interpolation
+                string objectIdSql = "SELECT OBJECT_ID(@QualifiedName)";
+                var idParameters = new Dictionary<string, object>
+                {
+                    { "@QualifiedName", qualifiedName }
+                };
+
+                object? objectIdResult = SqlConnectionManager.ExecuteScalar(objectIdSql, idParameters);
+
+                if (objectIdResult is null || objectIdResult is DBNull)
+                {
+                    return new List<Dependency>();
+                }
+
                 int objectId = Convert.ToInt32(objectIdResult);
 
-                // Use the object_id of the procedure/function as the referencing entity
                 string sql = @"
                     SELECT
                         CASE 
@@ -358,9 +383,13 @@ namespace SQLAtlas.Services
                     FROM sys.sql_expression_dependencies dep
                     INNER JOIN sys.objects o_ref ON dep.referenced_id = o_ref.object_id
                     INNER JOIN sys.schemas s_ref ON o_ref.schema_id = s_ref.schema_id
-                    WHERE dep.referencing_id = OBJECT_ID(@QualifiedName);"; // Using object ID based on qualified name
+                    WHERE dep.referencing_id = OBJECT_ID(@QualifiedName);";
 
-                var parameters = new Dictionary<string, object> { { "@QualifiedName", qualifiedName } };
+                var parameters = new Dictionary<string, object> 
+                { 
+                    { "@QualifiedName", qualifiedName } 
+                };
+                
                 DataTable dt = SqlConnectionManager.ExecuteQuery(sql, parameters);
                 var dependencies = new List<Dependency>();
 
@@ -379,7 +408,10 @@ namespace SQLAtlas.Services
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Dependency Lookup Error: {ex.Message}", "Fatal Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                // SECURITY FIX: Don't expose database schema in error messages
+                MessageBox.Show("An error occurred while retrieving dependencies. Please try again.", 
+                                "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                System.Diagnostics.Debug.WriteLine($"Dependency Lookup Error: {ex.Message}");
                 return new List<Dependency>();
             }
         }
@@ -1493,10 +1525,27 @@ namespace SQLAtlas.Services
             };
         }
 
+        // CRITICAL FIX #3: GetQueryExecutionPlan() - Query Execution Restriction
         public string GetQueryExecutionPlan(string query)
         {
-            // NOTE: This must use a non-pooled, dedicated connection to ensure SET SHOWPLAN_XML ON applies
-            // to the correct statement. We will use a dedicated connection instance.
+            // SECURITY: Validate and sanitize query input
+            if (string.IsNullOrWhiteSpace(query))
+            {
+                return "ERROR: Query cannot be empty.";
+            }
+
+            // SECURITY: Only allow SELECT statements to prevent data modification
+            string trimmedQuery = query.Trim();
+            if (!trimmedQuery.StartsWith("SELECT", StringComparison.OrdinalIgnoreCase))
+            {
+                return "ERROR: Only SELECT statements are allowed for execution plan analysis.";
+            }
+
+            // SECURITY: Restrict query length to prevent DoS
+            if (query.Length > 10000)
+            {
+                return "ERROR: Query is too long (max 10000 characters).";
+            }
 
             string? connectionString = SqlConnectionManager.GetCurrentConnectionString();
             if (string.IsNullOrEmpty(connectionString))
@@ -1512,18 +1561,19 @@ namespace SQLAtlas.Services
                 {
                     connection.Open();
 
-                    // 1. Set the session to output XML plan instead of results
+                    // SECURITY: Set command timeout to prevent hanging queries
+                    int commandTimeout = 30; // 30 seconds max
+
                     using (var cmdPlanOn = new SqlCommand("SET SHOWPLAN_XML ON;", connection))
                     {
+                        cmdPlanOn.CommandTimeout = commandTimeout;
                         cmdPlanOn.ExecuteNonQuery();
                     }
 
-                    // 2. Execute the user's query (this execution captures the XML plan)
                     using (var cmdQuery = new SqlCommand(query, connection))
                     {
-                        cmdQuery.CommandTimeout = 300; // Use long timeout for safety
+                        cmdQuery.CommandTimeout = commandTimeout;
 
-                        // Use ExecuteXmlReader to retrieve the XML plan content
                         using (var reader = cmdQuery.ExecuteXmlReader())
                         {
                             if (reader.Read())
@@ -1533,9 +1583,9 @@ namespace SQLAtlas.Services
                         }
                     }
 
-                    // 3. Turn the plan setting OFF for the session
                     using (var cmdPlanOff = new SqlCommand("SET SHOWPLAN_XML OFF;", connection))
                     {
+                        cmdPlanOff.CommandTimeout = commandTimeout;
                         cmdPlanOff.ExecuteNonQuery();
                     }
                 }
@@ -1543,11 +1593,14 @@ namespace SQLAtlas.Services
             }
             catch (SqlException ex)
             {
-                return $"ERROR retrieving plan. Details: {ex.Message}. Common causes: Incorrect syntax, or query requires elevated privileges (e.g., SELECT permissions).";
+                // SECURITY: Don't expose detailed SQL errors to user
+                System.Diagnostics.Debug.WriteLine($"SQL Error: {ex.Message}");
+                return "ERROR retrieving plan. Please verify your query syntax.";
             }
             catch (Exception ex)
             {
-                return $"ERROR: {ex.Message}";
+                System.Diagnostics.Debug.WriteLine($"Error: {ex.Message}");
+                return "ERROR: An unexpected error occurred.";
             }
         }
 
@@ -1629,7 +1682,7 @@ namespace SQLAtlas.Services
                 ";
 
                 DataTable fileDt = SqlConnectionManager.ExecuteQuery(fileMappingSql);
-                DataTable spaceDt = null;
+                DataTable? spaceDt = null;
 
                 try
                 {
