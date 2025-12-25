@@ -67,7 +67,7 @@ namespace SQLAtlas.Views
                 // On error, hide grid and show standard error feedback
                 AgStatusGrid.Visibility = Visibility.Collapsed;
                 NoDataTextBlock.Visibility = Visibility.Visible;
-                NoDataTextBlock.Text = $"ERROR: Failed to retrieve data. Details: {ex.Message}";
+                NoDataStatusText.Text = $"ERROR: {ex.Message}";
                 RefreshAGButton.Content = "Refresh Failed";
             }
             finally

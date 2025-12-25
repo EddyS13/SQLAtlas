@@ -3,25 +3,77 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-             xmlns:local="clr-namespace:SQLAtlas.Views"
              mc:Ignorable="d" 
-             d:DesignHeight="600" d:DesignWidth="800">
+             d:DesignHeight="800" d:DesignWidth="1100">
 
-    <DockPanel Margin="10">
-        <TextBlock DockPanel.Dock="Top" Margin="0,0,0,10" FontWeight="ExtraBold" FontSize="16"
-                   Foreground="{StaticResource AccentColor}"
-                   Text="General Server and Database Configuration"/>
+    <Grid Background="{StaticResource DeepBackground}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
 
-        <Button Content="Refresh Server Info" 
-                DockPanel.Dock="Top" 
-                Margin="0,0,0,10"
-                Padding="5"
-                x:Name="RefreshServerInfoButton" 
-                Click="RefreshServerInfoButton_Click"/>
+        <Border Grid.Row="0" Background="{StaticResource CardBackground}" CornerRadius="12" Margin="20,20,20,10" Padding="25">
+            <Grid>
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="🖥️" FontSize="22" Margin="0,0,15,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="SERVER &amp; DATABASE DETAILS" FontSize="24" FontWeight="Bold" Foreground="{StaticResource FontColor}"/>
+                    </StackPanel>
+                    <TextBlock x:Name="ServerHeaderInfo" Text="COLLECTING INSTANCE METADATA..." Foreground="{StaticResource MutedFontColor}" Margin="37,5,0,0" FontSize="13" FontWeight="SemiBold" Opacity="0.7"/>
+                </StackPanel>
 
-        <DataGrid x:Name="ServerInfoDataGrid" 
-                  HeadersVisibility="Column" 
-                  AutoGenerateColumns="True"
-                  CanUserAddRows="False"/>
-    </DockPanel>
+                <Button x:Name="RefreshServerInfoButton" HorizontalAlignment="Right" VerticalAlignment="Center"
+                        Padding="20,10" Click="RefreshServerInfoButton_Click"
+                        Background="{StaticResource BorderColor}" Foreground="{StaticResource FontColor}" 
+                        FontWeight="SemiBold" BorderThickness="0" Cursor="Hand" Style="{StaticResource ActionButtonStyle}">
+                    <TextBlock Text="REFRESH INFO"/>
+                </Button>
+            </Grid>
+        </Border>
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <WrapPanel Margin="10">
+
+                <Border Width="340" MinHeight="220" Background="{StaticResource CardBackground}" CornerRadius="12" Margin="10" Padding="20">
+                    <StackPanel>
+                        <TextBlock Text="ENVIRONMENT &amp; VERSION" Foreground="{StaticResource MutedFontColor}" FontWeight="Bold" FontSize="11" Margin="0,0,0,15"/>
+                        <TextBlock x:Name="VersionTxt" Text="--" Foreground="White" FontSize="16" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                        <Separator Margin="0,15" Background="{StaticResource BorderColor}" Opacity="0.3"/>
+                        <TextBlock x:Name="EditionTxt" Text="--" Foreground="{StaticResource AccentColor}" FontSize="14"/>
+                        <TextBlock x:Name="LevelTxt" Text="--" Foreground="{StaticResource MutedFontColor}" Margin="0,5,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Width="340" MinHeight="220" Background="{StaticResource CardBackground}" CornerRadius="12" Margin="10" Padding="20">
+                    <StackPanel>
+                        <TextBlock Text="RESOURCES &amp; PERFORMANCE" Foreground="{StaticResource MutedFontColor}" FontWeight="Bold" FontSize="11" Margin="0,0,0,15"/>
+
+                        <UniformGrid Columns="2">
+                            <StackPanel Margin="0,0,0,10">
+                                <TextBlock Text="CPU CORES" Foreground="{StaticResource MutedFontColor}" FontSize="10"/>
+                                <TextBlock x:Name="CpuTxt" Text="--" Foreground="White" FontSize="18" FontWeight="Bold"/>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,0,10">
+                                <TextBlock Text="PHYSICAL RAM" Foreground="{StaticResource MutedFontColor}" FontSize="10"/>
+                                <TextBlock x:Name="RamTxt" Text="--" Foreground="White" FontSize="18" FontWeight="Bold"/>
+                            </StackPanel>
+                        </UniformGrid>
+
+                        <TextBlock Text="UPTIME" Foreground="{StaticResource MutedFontColor}" FontSize="10" Margin="0,10,0,0"/>
+                        <TextBlock x:Name="UptimeTxt" Text="--" Foreground="{StaticResource SuccessColor}" FontSize="14" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Width="340" MinHeight="220" Background="{StaticResource CardBackground}" CornerRadius="12" Margin="10" Padding="20" BorderBrush="{StaticResource AccentColor}" BorderThickness="1">
+                    <StackPanel>
+                        <TextBlock Text="CONFIGURATION ADVISOR" Foreground="{StaticResource AccentColor}" FontWeight="Bold" FontSize="11" Margin="0,0,0,15"/>
+                        <TextBlock x:Name="AdvisorTitle" Text="System Check" Foreground="White" FontSize="16" FontWeight="Bold"/>
+                        <TextBlock x:Name="AdvisorDesc" Text="Scanning for memory and threading bottlenecks..." 
+                                   Foreground="{StaticResource FontColor}" TextWrapping="Wrap" Margin="0,10,0,0" FontSize="13" Opacity="0.8"/>
+                    </StackPanel>
+                </Border>
+
+            </WrapPanel>
+        </ScrollViewer>
+    </Grid>
 </UserControl>

@@ -2,13 +2,14 @@
 using System.Data;
 using System.Windows;
 
-namespace SQLAtlas
-{
-    /// <summary>
-    /// Interaction logic for App.xaml
-    /// </summary>
-    public partial class App : Application
-    {
-    }
+namespace SQLAtlas;
 
+public partial class App : Application
+{
+    public string ConnectionString { get; set; } = string.Empty;
+
+    public App()
+    {
+        ConnectionString = string.Empty;
+    }
 }

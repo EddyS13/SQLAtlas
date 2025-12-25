@@ -3,65 +3,95 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-             xmlns:local="clr-namespace:SQLAtlas.Views"
              mc:Ignorable="d" 
-             d:DesignHeight="600" d:DesignWidth="1000">
-    <Grid Margin="10">
+             d:DesignHeight="800" d:DesignWidth="1200">
+
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+    </UserControl.Resources>
+
+    <Grid Background="{StaticResource DeepBackground}">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="250"/>
-            <ColumnDefinition Width="10"/>
+            <ColumnDefinition Width="320"/>
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
-        <DockPanel Grid.Column="0">
-            <TextBlock DockPanel.Dock="Top" Text="Snippet Categories" FontWeight="Bold" Margin="0,0,0,5"/>
-            <ListBox x:Name="SnippetListBox" 
-                     Background="Transparent"
-                     SelectionMode="Single"
-                     SelectionChanged="SnippetListBox_SelectionChanged">
+        <Border Grid.Column="0" Background="{StaticResource CardBackground}" Margin="20,20,10,20" CornerRadius="12">
+            <DockPanel Margin="15">
+                <TextBlock DockPanel.Dock="Top" Text="SQL SNIPPETS" Foreground="{StaticResource AccentColor}" 
+                   FontWeight="Bold" FontSize="14" Margin="0,0,0,15"/>
 
-                <ListBox.ItemTemplate>
-                    <DataTemplate>
-                        <TextBlock Text="{Binding Title}" Margin="5,3"/>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
+                <Border DockPanel.Dock="Top" Background="{StaticResource DeepBackground}" CornerRadius="6" Padding="8,5" Margin="0,0,0,15">
+                    <Grid>
+                        <TextBlock Text="Search snippets..." Foreground="{StaticResource MutedFontColor}" 
+                           IsHitTestVisible="False" VerticalAlignment="Center" Margin="5,0"
+                           Visibility="{Binding Text.IsEmpty, ElementName=SearchBox, Converter={StaticResource BooleanToVisibilityConverter}}"/>
 
-                <ListBox.GroupStyle>
-                    <GroupStyle>
-                        <GroupStyle.HeaderTemplate>
-                            <DataTemplate>
-                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" Foreground="{StaticResource AccentColor}" Margin="0,5,0,0"/>
-                            </DataTemplate>
-                        </GroupStyle.HeaderTemplate>
-                    </GroupStyle>
-                </ListBox.GroupStyle>
-            </ListBox>
-        </DockPanel>
+                        <TextBox x:Name="SearchBox" 
+                         Background="Transparent" 
+                         BorderThickness="0" 
+                         Foreground="White" 
+                         TextChanged="SearchBox_TextChanged" 
+                         VerticalAlignment="Center"
+                         CaretBrush="{StaticResource AccentColor}"/>
+                    </Grid>
+                </Border>
 
-        <StackPanel Grid.Column="2" Margin="10,0,0,0">
-            <TextBlock x:Name="SnippetTitleTextBlock" Text="Select a SQL Snippet" 
-                       FontSize="16" FontWeight="Bold" Margin="0,0,0,5"/>
+                <ListBox x:Name="SnippetListBox" Background="Transparent" BorderThickness="0"
+                 SelectionMode="Single" SelectionChanged="SnippetListBox_SelectionChanged">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Border Padding="10,8" BorderBrush="{StaticResource BorderColor}" BorderThickness="0,0,0,1">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Title}" Foreground="White" FontWeight="SemiBold"/>
+                                    <TextBlock Text="{Binding Category}" Foreground="{StaticResource MutedFontColor}" FontSize="10"/>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
 
-            <TextBlock x:Name="SnippetDescriptionTextBlock" Text="Description: Select a snippet from the left to view details and code." 
-                       TextWrapping="Wrap" Margin="0,0,0,10" FontStyle="Italic"/>
+                    <ListBox.GroupStyle>
+                        <GroupStyle>
+                            <GroupStyle.HeaderTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Name}" FontWeight="Bold" Foreground="{StaticResource AccentColor}" 
+                                       Margin="0,15,0,5" FontSize="11"/>
+                                </DataTemplate>
+                            </GroupStyle.HeaderTemplate>
+                        </GroupStyle>
+                    </ListBox.GroupStyle>
+                </ListBox>
+            </DockPanel>
+        </Border>
 
-            <Button x:Name="CopyButton" Content="📋 Copy Code to Clipboard" 
-                    HorizontalAlignment="Left" 
-                    Click="CopyButton_Click"
-                    IsEnabled="False"
-                    Margin="0,0,0,10"/>
+        <Border Grid.Column="1" Background="{StaticResource CardBackground}" Margin="10,20,20,20" CornerRadius="12">
+            <DockPanel Margin="25">
+                <Grid DockPanel.Dock="Top" Margin="0,0,0,20">
+                    <StackPanel>
+                        <TextBlock x:Name="SnippetTitleTextBlock" Text="Select a Snippet" FontSize="22" FontWeight="Bold" Foreground="White"/>
+                        <TextBlock x:Name="SnippetDescriptionTextBlock" Foreground="{StaticResource MutedFontColor}" TextWrapping="Wrap" Margin="0,5,0,0"/>
+                    </StackPanel>
+                    <Button x:Name="CopyButton" HorizontalAlignment="Right" Style="{StaticResource ActionButtonStyle}" Click="CopyButton_Click" IsEnabled="False" Padding="15,8" Content="COPY CODE"/>
+                </Grid>
 
-            <TextBlock Text="T-SQL Code" FontWeight="Bold" Margin="0,0,0,5"/>
-            <ScrollViewer Height="450" BorderBrush="{StaticResource BorderColor}" BorderThickness="1" 
-                          Background="{StaticResource WindowBackground}">
-                <TextBox x:Name="CodeDisplayTextBox" 
-                         IsReadOnly="True" 
-                         FontFamily="Consolas" 
-                         TextWrapping="Wrap" 
-                         BorderThickness="0"
-                         Background="Transparent"/>
-            </ScrollViewer>
+                <Separator DockPanel.Dock="Top" Background="{StaticResource BorderColor}" Opacity="0.3" Margin="0,0,0,20"/>
 
-        </StackPanel>
+                <Border Background="{StaticResource DeepBackground}" CornerRadius="8" Padding="0">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+                        <TextBox x:Name="CodeDisplayTextBox" 
+                                 IsReadOnly="True" 
+                                 Background="Transparent" 
+                                 Foreground="#DCDCAA" 
+                                 BorderThickness="0" 
+                                 FontFamily="Consolas" 
+                                 FontSize="13"
+                                 Padding="15" 
+                                 Margin="0"
+                                 AcceptsReturn="True"
+                                 TextWrapping="NoWrap"/>
+                    </ScrollViewer>
+                </Border>
+            </DockPanel>
+        </Border>
     </Grid>
 </UserControl>

@@ -1,4 +1,5 @@
-﻿using SQLAtlas.Services;
+﻿using SQLAtlas.Models;
+using SQLAtlas.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -36,24 +37,63 @@ namespace SQLAtlas.Views
         }
         private async void RefreshPerformanceButton_Click(object? sender, RoutedEventArgs? e)
         {
-            RefreshPerformanceButton.Content = "ANALYZING PERFORMANCE...";
+            RefreshPerformanceButton.Content = "ANALYZING...";
             RefreshPerformanceButton.IsEnabled = false;
 
             try
             {
                 var blockingList = await Task.Run(() => _metadataService.GetCurrentBlockingChain());
-                BlockingChainDataGrid.ItemsSource = blockingList;
 
-                RefreshPerformanceButton.Content = $"Performance Data Refreshed ({DateTime.Now:T})";
+                Dispatcher.Invoke(() => {
+                    BlockingChainDataGrid.ItemsSource = blockingList;
+
+                    if (blockingList == null || blockingList.Count == 0)
+                    {
+                        // Show the "No Blocking" message, hide the Grid
+                        BlockingChainDataGrid.Visibility = Visibility.Collapsed;
+                        NoBlockingContainer.Visibility = Visibility.Visible;
+                    }
+                    else
+                    {
+                        // Show the Grid, hide the message
+                        BlockingChainDataGrid.Visibility = Visibility.Visible;
+                        NoBlockingContainer.Visibility = Visibility.Collapsed;
+                    }
+
+                    RefreshPerformanceButton.Content = "REFRESH MONITOR";
+                });
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to retrieve performance data: {ex.Message}", "Performance Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                RefreshPerformanceButton.Content = "Refresh Failed";
+                System.Diagnostics.Debug.WriteLine($"Blocking Analysis Error: {ex.Message}");
+                RefreshPerformanceButton.Content = "RETRY";
             }
             finally
             {
                 RefreshPerformanceButton.IsEnabled = true;
+            }
+        }
+
+        private async void KillSession_Click(object sender, RoutedEventArgs e)
+        {
+            var btn = (Button)sender;
+            var session = btn.DataContext as BlockingProcess;
+            if (session == null) return;
+
+            var result = MessageBox.Show($"Kill SPID {session.Spid}?\n\nIf this is the Head Blocker (Level 0), it will release the entire chain.",
+                                         "Terminate Session", MessageBoxButton.YesNo, MessageBoxImage.Stop);
+
+            if (result == MessageBoxResult.Yes)
+            {
+                try
+                {
+                    await Task.Run(() => _metadataService.KillSession(session.Spid));
+                    RefreshPerformanceButton_Click(null, null);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message);
+                }
             }
         }
     }

@@ -5,35 +5,125 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:SQLAtlas.Views"
              mc:Ignorable="d" 
-             d:DesignHeight="600" d:DesignWidth="800">
-    <DockPanel Margin="10">
-        <TextBlock DockPanel.Dock="Top" Margin="0,0,0,10" FontWeight="ExtraBold" FontSize="16"
-                   Foreground="{StaticResource AccentColor}"
-                   Text="Backup History / Restore Manager"/>
+             d:DesignHeight="800" d:DesignWidth="1100">
 
-        <Button Content="Refresh Backup History" DockPanel.Dock="Top" Margin="0,0,0,10"
-                x:Name="RefreshBackupButton" Click="RefreshBackupButton_Click"/>
+    <Grid Background="{StaticResource DeepBackground}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="220"/>
+        </Grid.RowDefinitions>
 
-        <TextBlock DockPanel.Dock="Top" Text="Recent Backups (Last 20)" FontWeight="Bold" Margin="0,0,0,5"/>
+        <Border Grid.Row="0" Background="{StaticResource CardBackground}" CornerRadius="12" Margin="20,20,20,10" Padding="25">
+            <Grid>
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="🔄" Foreground="{StaticResource AccentColor}" FontSize="22" Margin="0,0,15,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="BACKUP &amp; RESTORE MANAGER" FontSize="24" FontWeight="Bold" Foreground="{StaticResource FontColor}"/>
+                    </StackPanel>
+                    <TextBlock Text="AUDIT RECOVERY HISTORY AND GENERATE RESTORE COMMANDS" Foreground="{StaticResource MutedFontColor}" Margin="37,5,0,0" FontSize="13" FontWeight="SemiBold" Opacity="0.7"/>
+                </StackPanel>
 
-        <DataGrid x:Name="BackupHistoryGrid" 
-                  AutoGenerateColumns="True" 
-                  CanUserAddRows="False" 
-                  DockPanel.Dock="Top" 
-                  Height="400"
-                  SelectionChanged="BackupHistoryGrid_SelectionChanged"/>
+                <Button x:Name="RefreshBackupButton" HorizontalAlignment="Right" VerticalAlignment="Center"
+                        Padding="20,10" Click="RefreshBackupButton_Click"
+                        Background="{StaticResource BorderColor}" Foreground="{StaticResource FontColor}" 
+                        FontWeight="SemiBold" BorderThickness="0" Cursor="Hand">
+                    <Button.Resources>
+                        <Style TargetType="Border">
+                            <Setter Property="CornerRadius" Value="6"/>
+                        </Style>
+                    </Button.Resources>
+                    <TextBlock Text="REFRESH HISTORY"/>
+                </Button>
+            </Grid>
+        </Border>
 
-        <TextBlock Text="Selected Backup Restore Script" FontWeight="Bold" Margin="0,15,0,5"/>
-        <TextBox x:Name="RestoreScriptTextBox" 
-                 IsReadOnly="True" 
-                 Height="100" 
-                 TextWrapping="Wrap" 
-                 FontFamily="Consolas"
-                 AcceptsReturn="True"
-                 Background="{StaticResource WindowBackground}"
-                 Foreground="{StaticResource FontColor}"
-                 BorderBrush="{StaticResource BorderColor}"
-                 BorderThickness="1"
-                 Padding="5"/>
-    </DockPanel>
+        <Border Grid.Row="1" Background="{StaticResource CardBackground}" CornerRadius="12" Margin="20,0,20,10" Padding="20">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Text="RECENT BACKUP HISTORY" Foreground="{StaticResource AccentColor}" FontSize="11" FontWeight="Bold" Margin="0,0,0,15" Opacity="0.8"/>
+
+                <DataGrid x:Name="BackupHistoryGrid" Grid.Row="1"
+                          AlternatingRowBackground="{StaticResource GridAlternateRowBackground}"
+                          AutoGenerateColumns="False" Background="Transparent" BorderThickness="0"
+                          CanUserAddRows="False" SelectionChanged="BackupHistoryGrid_SelectionChanged">
+
+                    <DataGrid.Resources>
+                        <StaticResource x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}" ResourceKey="AccentColor"/>
+                        <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightTextBrushKey}" Color="White"/>
+                    </DataGrid.Resources>
+
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="DATABASE" Binding="{Binding DatabaseName}" Width="1.5*"/>
+                        <DataGridTextColumn Header="TYPE" Binding="{Binding BackupType}" Width="70"/>
+                        <DataGridTextColumn Header="FINISHED" Binding="{Binding BackupDate, StringFormat=\{0:yyyy-MM-dd HH:mm\}}" Width="135"/>
+                        <DataGridTextColumn Header="SIZE (MB)" Binding="{Binding SizeMB, StringFormat=\{0:N2\}}" Width="90"/>
+
+                        <DataGridTextColumn Header="USER" Binding="{Binding UserName}" Width="*">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                    <Setter Property="ToolTip" Value="{Binding UserName}"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <DataGridTextColumn Header="DEVICE/PATH" Binding="{Binding DeviceName}" Width="1.5*">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                    <Setter Property="Foreground" Value="{StaticResource MutedFontColor}"/>
+                                    <Setter Property="ToolTip" Value="{Binding DeviceName}"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="2" Background="{StaticResource CardBackground}" CornerRadius="12" Margin="20,0,20,20" Padding="20">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <Grid Grid.Row="0" Margin="0,0,0,10">
+                    <TextBlock Text="RESTORE SCRIPT GENERATOR" Foreground="{StaticResource AccentColor}" 
+                               FontSize="11" FontWeight="Bold" VerticalAlignment="Center"/>
+
+                    <Button x:Name="CopyScriptButton" Content="COPY TO CLIPBOARD" HorizontalAlignment="Right"
+                            Padding="12,4" FontSize="10" FontWeight="Bold" Click="CopyScriptButton_Click"
+                            Background="{StaticResource BorderColor}" Foreground="{StaticResource FontColor}"
+                            BorderThickness="0" Cursor="Hand">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="4"/>
+                            </Style>
+                        </Button.Resources>
+                    </Button>
+                </Grid>
+
+                <TextBox x:Name="RestoreScriptTextBox" Grid.Row="1"
+                         IsReadOnly="True" TextWrapping="NoWrap" 
+                         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                         FontFamily="Consolas" FontSize="12"
+                         Background="{StaticResource DeepBackground}"
+                         Foreground="{StaticResource CodeForeground}"
+                         BorderBrush="{StaticResource BorderColor}"
+                         Padding="15" BorderThickness="1">
+                    <TextBox.Resources>
+                        <Style TargetType="Border">
+                            <Setter Property="CornerRadius" Value="8"/>
+                        </Style>
+                    </TextBox.Resources>
+                </TextBox>
+            </Grid>
+        </Border>
+    </Grid>
 </UserControl>

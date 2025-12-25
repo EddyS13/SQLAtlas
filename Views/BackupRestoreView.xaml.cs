@@ -3,23 +3,13 @@ using SQLAtlas.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 namespace SQLAtlas.Views
 {
-    /// <summary>
-    /// Interaction logic for BackupRestoreView.xaml
-    /// </summary>
     public partial class BackupRestoreView : UserControl
     {
         private readonly MetadataService _metadataService = new MetadataService();
@@ -32,6 +22,7 @@ namespace SQLAtlas.Views
 
         private void View_Loaded(object sender, RoutedEventArgs e)
         {
+            // Auto-load data on startup
             RefreshBackupButton_Click(null, null);
         }
 
@@ -39,15 +30,21 @@ namespace SQLAtlas.Views
         {
             if (RefreshBackupButton is null || BackupHistoryGrid is null) return;
 
-            RefreshBackupButton.Content = "FETCHING HISTORY...";
+            RefreshBackupButton.Content = "FETCHING MSDB LOGS...";
             RefreshBackupButton.IsEnabled = false;
 
             try
             {
+                // Fetch the last 30 days of history from our service
                 var history = await Task.Run(() => _metadataService.GetBackupHistory());
-                BackupHistoryGrid.ItemsSource = history;
 
-                RefreshBackupButton.Content = $"History Refreshed ({DateTime.Now:T})";
+                Dispatcher.Invoke(() => {
+                    BackupHistoryGrid.ItemsSource = history;
+                    RefreshBackupButton.Content = $"History Refreshed ({DateTime.Now:T})";
+
+                    // Reset script box on refresh
+                    RestoreScriptTextBox.Text = "-- Select a backup row to generate recovery T-SQL";
+                });
             }
             catch (Exception ex)
             {
@@ -62,59 +59,86 @@ namespace SQLAtlas.Views
 
         private void BackupHistoryGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            // Cast the selected item to your BackupHistory model
             if (BackupHistoryGrid.SelectedItem is BackupHistory selectedBackup)
             {
-                // Escape square brackets and single quotes for SQL injection prevention
+                // Use your safety escaping logic
                 string escapedDatabaseName = EscapeSqlIdentifier(selectedBackup.DatabaseName);
                 string escapedDeviceName = EscapeSqlString(selectedBackup.DeviceName);
-                
-                string restoreScript = $@"-- **WARNING: Running this command will overwrite the existing database!**
-                    -- Execute this script in SSMS connected to the master database.
 
-                    RESTORE DATABASE {escapedDatabaseName}
-                    FROM DISK = {escapedDeviceName}
-                    WITH 
-                        FILE = 1, 
-                        NOUNLOAD, 
-                        REPLACE, 
-                        STATS = 10;
-                            ";
+                // Build a professional recovery script
+                string restoreScript =
+                    $"-- ************************************************************\n" +
+                    $"-- WARNING: THIS SCRIPT WILL OVERWRITE THE EXISTING DATABASE\n" +
+                    $"-- GENERATED AT: {DateTime.Now}\n" +
+                    $"-- ************************************************************\n\n" +
+                    $"USE [master];\n" +
+                    $"GO\n\n" +
+                    $"-- Kill existing connections\n" +
+                    $"ALTER DATABASE {escapedDatabaseName} SET SINGLE_USER WITH ROLLBACK IMMEDIATE;\n\n" +
+                    $"-- Perform Restore\n" +
+                    $"RESTORE DATABASE {escapedDatabaseName}\n" +
+                    $"FROM DISK = {escapedDeviceName}\n" +
+                    $"WITH \n" +
+                    $"    REPLACE, \n" +
+                    $"    STATS = 5;\n\n" +
+                    $"-- Restore multi-user access\n" +
+                    $"ALTER DATABASE {escapedDatabaseName} SET MULTI_USER;\n" +
+                    $"GO";
 
                 RestoreScriptTextBox.Text = restoreScript;
             }
             else
             {
-                RestoreScriptTextBox.Text = string.Empty;
+                RestoreScriptTextBox.Text = "-- Select a backup row to generate recovery T-SQL";
             }
         }
 
-        /// <summary>
-        /// Safely escapes SQL identifiers (like database names) by wrapping in square brackets
-        /// and escaping any internal brackets to prevent SQL injection.
-        /// </summary>
+        #region SQL Safety Helpers (Your Existing Logic)
+
         private static string EscapeSqlIdentifier(string? identifier)
         {
             if (string.IsNullOrWhiteSpace(identifier))
                 return "[UnknownDatabase]";
 
-            // Escape closing brackets by doubling them
             string escaped = identifier.Replace("]", "]]");
             return $"[{escaped}]";
         }
 
-        /// <summary>
-        /// Safely escapes SQL string literals by wrapping in single quotes
-        /// and escaping internal quotes to prevent SQL injection.
-        /// </summary>
         private static string EscapeSqlString(string? value)
         {
             if (string.IsNullOrWhiteSpace(value))
                 return "N''";
 
-            // Escape single quotes by doubling them
             string escaped = value.Replace("'", "''");
             return $"N'{escaped}'";
         }
-    }
 
+        #endregion
+
+        private async void CopyScriptButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(RestoreScriptTextBox.Text) ||
+                RestoreScriptTextBox.Text.StartsWith("-- Select")) return;
+
+            try
+            {
+                Clipboard.SetText(RestoreScriptTextBox.Text);
+
+                // Visual Feedback
+                string originalContent = CopyScriptButton.Content.ToString() ?? "COPY TO CLIPBOARD";
+                CopyScriptButton.Content = "✓ COPIED!";
+                CopyScriptButton.Foreground = (Brush)FindResource("SuccessColor");
+
+                await Task.Delay(2000);
+
+                CopyScriptButton.Content = originalContent;
+                CopyScriptButton.Foreground = (Brush)FindResource("FontColor");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Failed to copy to clipboard: " + ex.Message);
+            }
+        }
+    }
 }

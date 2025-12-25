@@ -61,23 +61,28 @@ namespace SQLAtlas.Views
 
         private void ShowConfigNotesButton_Click(object sender, RoutedEventArgs e)
         {
-            string notes = "--- Configuration Optimization Notes ---\n\n" +
-                           "1. max server memory (MB):\n   - Problem: Set too high/low.\n   - Goal: Reserve 10-20% of physical RAM for OS.\n\n" +
-                           "2. max degree of parallelism:\n   - Problem: 0 (unlimited) or high.\n   - Goal: Set to 8 or less to prevent CPU saturation.\n\n" +
-                           "3. cost threshold for parallelism:\n   - Problem: 5 (default).\n   - Goal: Raise to 25-70 to improve CPU efficiency by stopping cheap parallel queries.\n\n" +
-                           "4. fillfactor:\n   - Problem: 100 (default).\n   - Goal: Set lower (e.g., 90) to reduce page splits and improve update performance.";
+            GuidanceHeader.Text = "SERVER OPTIMIZATION";
+            GuidanceContent.Text = "1. MAX SERVER MEMORY\nReserve 10-20% for the OS to prevent paging.\n\n" +
+                                   "2. MAXDOP\nSet to 8 or lower for most workloads.\n\n" +
+                                   "3. COST THRESHOLD\nIncrease to 50 to avoid tiny queries using all CPUs.\n\n" +
+                                   "4. FILL FACTOR\nSet to 90 for high-insert tables.";
 
-            MessageBox.Show(notes, "Configuration Optimization Notes", MessageBoxButton.OK, MessageBoxImage.Information);
+            GuidancePanel.Visibility = Visibility.Visible;
         }
 
         private void ShowDatabaseGuidanceButton_Click(object sender, RoutedEventArgs e)
         {
-            string notes = "--- Database Configuration Guidance ---\n\n" +
-                           "1. Recovery Model:\n   - Check: Is it FULL for production databases?\n   - Warning: SIMPLE recovery model risks losing data since the last full/differential backup.\n\n" +
-                           "2. Auto Close:\n   - Best Practice: Should be set to OFF.\n   - Warning: Turning this ON severely impacts performance due to frequent database startup/shutdown cycles.\n\n" +
-                           "3. Auto Shrink:\n   - Best Practice: Should be set to OFF.\n   - Warning: Frequent shrinking causes index fragmentation and performance degradation.";
+            GuidanceHeader.Text = "DATABASE BEST PRACTICES";
+            GuidanceContent.Text = "1. RECOVERY MODEL\nUse FULL for production, SIMPLE for Dev/Test.\n\n" +
+                                   "2. AUTO-CLOSE\nAlways keep OFF to prevent CPU spikes.\n\n" +
+                                   "3. AUTO-SHRINK\nAlways keep OFF to prevent fragmentation.";
 
-            MessageBox.Show(notes, "Database Configuration Guidance", MessageBoxButton.OK, MessageBoxImage.Information);
+            GuidancePanel.Visibility = Visibility.Visible;
+        }
+
+        private void CloseGuidance_Click(object sender, RoutedEventArgs e)
+        {
+            GuidancePanel.Visibility = Visibility.Collapsed;
         }
     }
 }

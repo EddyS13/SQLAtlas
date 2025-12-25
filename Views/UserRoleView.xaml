@@ -3,38 +3,100 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-             xmlns:local="clr-namespace:SQLAtlas.Views"
              mc:Ignorable="d" 
-             d:DesignHeight="450" d:DesignWidth="800">
-    <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <StackPanel Margin="10">
+             d:DesignHeight="900" d:DesignWidth="1100">
 
-            <TextBlock Text="Database User and Role Audit" 
-                       FontWeight="ExtraBold" 
-                       FontSize="16" 
-                       Foreground="{StaticResource AccentColor}" 
-                       Margin="0,0,0,10"/>
+    <Grid Background="{StaticResource DeepBackground}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
 
-            <TextBlock Text="Active Database Principals and Roles" FontWeight="Bold" Margin="0,5,0,5"/>
+        <Border Grid.Row="0" Background="{StaticResource CardBackground}" CornerRadius="12" Margin="20,20,20,10" Padding="25">
+            <Grid>
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="🛡️" Foreground="{StaticResource AccentColor}" FontSize="22" Margin="0,0,15,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="SECURITY &amp; ACCESS DASHBOARD" FontSize="24" FontWeight="Bold" Foreground="{StaticResource FontColor}"/>
+                    </StackPanel>
+                    <TextBlock Text="AUDITING DATABASE PRINCIPALS AND THEIR ASSIGNED ROLES" Foreground="{StaticResource MutedFontColor}" Margin="37,5,0,0" FontSize="13" FontWeight="SemiBold" Opacity="0.7"/>
+                </StackPanel>
 
-            <Grid Height="Auto" MaxHeight="300" Margin="0,0,0,15">
-
-                <DataGrid x:Name="UsersRolesGrid" 
-                  HeadersVisibility="Column" 
-                  CanUserAddRows="False"
-                  Height="Auto" 
-                  MaxHeight="300"/>
-
-                <TextBlock x:Name="NoPrincipalsTextBlock" 
-                   Text="— No active principals or roles found. —" 
-                   FontStyle="Italic" 
-                   HorizontalAlignment="Center" 
-                   VerticalAlignment="Center" 
-                   Foreground="{StaticResource FontColor}"
-                   Visibility="Collapsed"/>
-
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <TextBlock Text="🔍" VerticalAlignment="Center" Margin="0,0,10,0" Opacity="0.5"/>
+                    <Border Background="{StaticResource DeepBackground}" CornerRadius="20" Padding="15,5" Width="250" BorderThickness="1" BorderBrush="{StaticResource BorderColor}">
+                        <TextBox x:Name="SecuritySearchBox" 
+                         Background="Transparent" 
+                         BorderThickness="0" 
+                         Foreground="{StaticResource FontColor}" 
+                         VerticalAlignment="Center"
+                         FontSize="13"
+                         TextChanged="SecuritySearchBox_TextChanged"
+                         GotFocus="SearchBox_GotFocus"
+                         LostFocus="SearchBox_LostFocus"
+                         Tag="Filter users or roles..."/>
+                    </Border>
+                </StackPanel>
             </Grid>
+        </Border>
 
-        </StackPanel>
-    </ScrollViewer>
+        <Border Grid.Row="1" Background="{StaticResource CardBackground}" CornerRadius="12" Margin="20,0,20,10" Padding="20">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Text="DATABASE PRINCIPALS (LOGINS &amp; USERS)" Foreground="{StaticResource AccentColor}" FontSize="11" FontWeight="Bold" Margin="0,0,0,15"/>
+
+                <DataGrid x:Name="UsersRolesGrid" Grid.Row="1"
+                          AlternatingRowBackground="{StaticResource GridAlternateRowBackground}"
+                          AutoGenerateColumns="False" 
+                          Background="Transparent" 
+                          BorderThickness="0"
+                          HeadersVisibility="Column">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="NAME" Binding="{Binding Name}" Width="2*"/>
+                        <DataGridTextColumn Header="TYPE" Binding="{Binding TypeDescription}" Width="*"/>
+                        <DataGridTextColumn Header="CREATED" Binding="{Binding CreateDate, StringFormat=\{0:yyyy-MM-dd\}}" Width="120"/>
+                        <DataGridTextColumn Header="AUTHENTICATION" Binding="{Binding AuthenticationType}" Width="*"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+
+                <StackPanel x:Name="NoPrincipalsContainer" Grid.Row="1" 
+                            VerticalAlignment="Center" HorizontalAlignment="Center" 
+                            Visibility="Collapsed">
+                    <TextBlock Text="🔒" FontSize="40" HorizontalAlignment="Center" Margin="0,0,0,10"/>
+                    <TextBlock Text="NO PRINCIPALS FOUND" 
+                               Foreground="{StaticResource MutedFontColor}" 
+                               FontSize="16" FontWeight="Bold" HorizontalAlignment="Center"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="2" Background="{StaticResource CardBackground}" CornerRadius="12" Margin="20,0,20,20" Padding="20">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Text="ACTIVE ROLE MEMBERSHIPS (PERMISSIONS)" Foreground="{StaticResource AccentColor}" FontSize="11" FontWeight="Bold" Margin="0,0,0,15"/>
+
+                <DataGrid x:Name="MembershipsGrid" Grid.Row="1"
+                          AlternatingRowBackground="{StaticResource GridAlternateRowBackground}"
+                          AutoGenerateColumns="False" 
+                          Background="Transparent" 
+                          BorderThickness="0"
+                          HeadersVisibility="Column">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="ROLE NAME" Binding="{Binding RoleName}" Width="*" FontWeight="Bold"/>
+                        <DataGridTextColumn Header="MEMBER NAME" Binding="{Binding MemberName}" Width="2*"/>
+                        <DataGridTextColumn Header="MEMBER TYPE" Binding="{Binding MemberType}" Width="*"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Grid>
+        </Border>
+    </Grid>
 </UserControl>

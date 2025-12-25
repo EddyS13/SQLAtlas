@@ -4,52 +4,114 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              mc:Ignorable="d" 
-             d:DesignHeight="600" d:DesignWidth="800">
-    
-    <DockPanel Margin="10">
-        <TextBlock DockPanel.Dock="Top" Margin="0,0,0,10" FontWeight="ExtraBold" FontSize="16"
-                   Foreground="{StaticResource AccentColor}"
-                   Text="Dynamic Data Masking Manager (Sensitive Data Audit)"/>
+             d:DesignHeight="800" d:DesignWidth="1100">
 
-        <Button Content="Refresh Masking Audit" 
-                DockPanel.Dock="Top" 
-                Margin="0,0,0,10"
-                Padding="5"
-                x:Name="RefreshMaskingButton" 
-                Click="RefreshMaskingButton_Click"/>
+    <Grid Background="{StaticResource DeepBackground}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
 
-        <DataGrid x:Name="MaskingCandidatesGrid" 
-                  HeadersVisibility="Column" 
-                  AutoGenerateColumns="False"
-                  Height="Auto"
-                  MaxHeight="500"
-                  CanUserAddRows="False">
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="Table" Binding="{Binding SchemaTableName}" Width="*"/>
-                <DataGridTextColumn Header="Column" Binding="{Binding ColumnName}" Width="1.2*"/>
-                <DataGridTextColumn Header="Data Type" Binding="{Binding DataType}" Width="Auto"/>
-                <DataGridCheckBoxColumn Header="Masked?" Binding="{Binding IsMasked}" Width="Auto"/>
-                <DataGridTextColumn Header="Function" Binding="{Binding MaskingFunction}" Width="2*"/>
+        <Border Grid.Row="0" Background="{StaticResource CardBackground}" CornerRadius="12" Margin="20,20,20,10" Padding="25">
+            <Grid>
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="🎭" Foreground="{StaticResource AccentColor}" FontSize="22" Margin="0,0,15,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="DYNAMIC DATA MASKING" FontSize="24" FontWeight="Bold" Foreground="{StaticResource FontColor}"/>
+                    </StackPanel>
+                    <TextBlock Text="AUDIT AND MANAGE SENSITIVE DATA COLUMN MASKING" Foreground="{StaticResource MutedFontColor}" Margin="37,5,0,0" FontSize="13" FontWeight="SemiBold" Opacity="0.7"/>
+                </StackPanel>
 
-                <DataGridTemplateColumn Header="Action" Width="100">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <Button Content="{Binding IsMasked, Converter={StaticResource BoolToActionConverter}}" 
-                                    Click="ApplyMaskingActionButton_Click" 
-                                    CommandParameter="{Binding MaskingScript}"/>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
-            </DataGrid.Columns>
-        </DataGrid>
+                <Button x:Name="RefreshMaskingButton" 
+                        HorizontalAlignment="Right" VerticalAlignment="Center"
+                        Padding="20,10" Click="RefreshMaskingButton_Click"
+                        Background="{StaticResource BorderColor}" Foreground="{StaticResource FontColor}" 
+                        FontWeight="SemiBold" BorderThickness="0" Cursor="Hand">
+                    <Button.Resources>
+                        <Style TargetType="Border">
+                            <Setter Property="CornerRadius" Value="6"/>
+                        </Style>
+                    </Button.Resources>
+                    <TextBlock Text="REFRESH AUDIT"/>
+                </Button>
+            </Grid>
+        </Border>
 
-        <TextBlock x:Name="NoCandidatesTextBlock" 
-               Text="— No sensitive data columns found for auditing or masking. —" 
-               FontStyle="Italic" 
-               HorizontalAlignment="Center" 
-               VerticalAlignment="Center"
-               Foreground="{StaticResource FontColor}"
-               Visibility="Collapsed"/>
-        
-    </DockPanel>
+        <Border Grid.Row="1" Background="{StaticResource CardBackground}" CornerRadius="12" Margin="20,0,20,20" Padding="20">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Text="SENSITIVE COLUMN INVENTORY" Foreground="{StaticResource AccentColor}" FontSize="11" FontWeight="Bold" Margin="0,0,0,15" Opacity="0.8"/>
+
+                <DataGrid x:Name="MaskingCandidatesGrid" Grid.Row="1"
+                          AlternatingRowBackground="{StaticResource GridAlternateRowBackground}"
+                          AutoGenerateColumns="False" Background="Transparent" BorderThickness="0"
+                          CanUserAddRows="False">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="TABLE" Binding="{Binding SchemaTableName}" Width="*"/>
+                        <DataGridTextColumn Header="COLUMN" Binding="{Binding ColumnName}" Width="*"/>
+                        <DataGridTextColumn Header="TYPE" Binding="{Binding DataType}" Width="100"/>
+
+                        <DataGridTemplateColumn Header="STATUS" Width="100">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Border x:Name="StatusPill" CornerRadius="10" Padding="8,2" HorizontalAlignment="Left" Background="{StaticResource BorderColor}">
+                                        <TextBlock x:Name="StatusText" Text="CLEAR" FontSize="11" Foreground="White" Opacity="0.6"/>
+                                    </Border>
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding IsMasked}" Value="True">
+                                            <Setter TargetName="StatusPill" Property="Background" Value="#1E3A8A"/>
+                                            <Setter TargetName="StatusText" Property="Text" Value="MASKED"/>
+                                            <Setter TargetName="StatusText" Property="Opacity" Value="1"/>
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <DataGridTextColumn Header="FUNCTION" Binding="{Binding MaskingFunction}" Width="1.5*"/>
+
+                        <DataGridTemplateColumn Width="130" Header="ACTION">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Button x:Name="ActionBtn" 
+                                        Click="ApplyMaskingActionButton_Click"
+                                        HorizontalAlignment="Stretch"
+                                        Background="Transparent" 
+                                        BorderBrush="{StaticResource AccentColor}" 
+                                        BorderThickness="1"
+                                        Foreground="{StaticResource AccentColor}" 
+                                        FontSize="10" 
+                                        FontWeight="Bold" 
+                                        Padding="4,2" 
+                                        Cursor="Hand">
+                                        <Button.Style>
+                                            <Style TargetType="Button">
+                                                <Setter Property="Content" Value="APPLY MASK"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsMasked}" Value="True">
+                                                        <Setter Property="Content" Value="REMOVE MASK"/>
+                                                        <Setter Property="Foreground" Value="{StaticResource ErrorColor}"/>
+                                                        <Setter Property="BorderBrush" Value="{StaticResource ErrorColor}"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+
+                <StackPanel x:Name="NoCandidatesContainer" Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center" Visibility="Collapsed">
+                    <TextBlock Text="🔍" FontSize="40" HorizontalAlignment="Center" Margin="0,0,0,10"/>
+                    <TextBlock x:Name="NoCandidatesTextBlock" Text="NO SENSITIVE COLUMNS DETECTED" Foreground="{StaticResource MutedFontColor}" FontSize="16" FontWeight="Bold" HorizontalAlignment="Center"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
 </UserControl>

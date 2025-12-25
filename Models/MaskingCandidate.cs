@@ -8,11 +8,28 @@ namespace SQLAtlas.Models
 {
     public class MaskingCandidate
     {
-        public string SchemaTableName { get; set; } = string.Empty;
-        public string ColumnName { get; set; } = string.Empty;
-        public string DataType { get; set; } = string.Empty;
+        public string SchemaName { get; set; } = "";
+        public string TableName { get; set; } = "";
+        public string ColumnName { get; set; } = "";
+        public string DataType { get; set; } = "";
         public bool IsMasked { get; set; }
-        public string MaskingFunction { get; set; } = string.Empty;
-        public string MaskingScript { get; set; } = string.Empty; // DDL script to apply/remove mask
+        public string MaskingFunction { get; set; } = "";
+
+        public string SchemaTableName => $"{SchemaName}.{TableName}";
+
+        public string SuggestedMask
+        {
+            get
+            {
+                string col = ColumnName.ToLower();
+
+                // Specialized mask for SSN patterns
+                if (col.Contains("sec_no"))
+                    return "partial(0, \"XXX-XX-\", 4)";
+
+                // Standard mask for passwords, credit cards, and phones
+                return "default()";
+            }
+        }
     }
 }

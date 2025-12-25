@@ -1,5 +1,7 @@
-﻿using System;
+﻿using SQLAtlas.Services;
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -12,9 +14,8 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
-using SQLAtlas.Services;
+using System.Xml;
 using System.Xml.Linq;
-using System.IO;
 
 namespace SQLAtlas.Views
 {
@@ -35,7 +36,10 @@ namespace SQLAtlas.Views
 
         private async Task GetPlanButtonClickAsync()
         {
-            if (string.IsNullOrWhiteSpace(QueryInputTextBox.Text))
+            // 1. Capture the UI values on the MAIN thread first
+            string queryText = QueryInputTextBox.Text;
+
+            if (string.IsNullOrWhiteSpace(queryText))
             {
                 PlanOutputTextBox.Text = "Please enter a query.";
                 return;
@@ -46,10 +50,10 @@ namespace SQLAtlas.Views
 
             try
             {
-                // FIX 5: Use QueryInputTextBox
-                string planXml = await Task.Run(() => _metadataService.GetQueryExecutionPlan(QueryInputTextBox.Text));
+                // 2. Pass the 'queryText' string variable into the Task.
+                // Now the background thread doesn't have to touch the UI.
+                string planXml = await Task.Run(() => _metadataService.GetQueryExecutionPlan(queryText));
 
-                // CRITICAL FIX 6 & 7: Use PlanOutputTextBox
                 if (planXml.StartsWith("ERROR"))
                 {
                     PlanOutputTextBox.Text = planXml;
@@ -57,19 +61,17 @@ namespace SQLAtlas.Views
                 }
                 else
                 {
-                    // Assuming you integrate the XML formatting logic here:
-                    PlanOutputTextBox.Text = planXml ?? "No execution plan generated.";
-                    PlanOutputTextBox.Foreground = Brushes.White;
+                    PlanOutputTextBox.Text = PrettifyXml(planXml);
+                    PlanOutputTextBox.Foreground = new SolidColorBrush(Color.FromRgb(156, 220, 254));
                 }
             }
             catch (Exception ex)
             {
-                PlanOutputTextBox.Text = $"Unexpected .NET Error: {ex.Message}";
+                PlanOutputTextBox.Text = $"Unexpected Error: {ex.Message}";
                 PlanOutputTextBox.Foreground = Brushes.Red;
             }
             finally
             {
-                // FIX 8: GetPlanButton
                 GetPlanButton.IsEnabled = true;
             }
         }
@@ -108,6 +110,31 @@ namespace SQLAtlas.Views
             catch (Exception ex)
             {
                 MessageBox.Show($"Failed to copy to clipboard: {ex.Message}", "Clipboard Error");
+            }
+        }
+
+        private string PrettifyXml(string xml)
+        {
+            try
+            {
+                var stringBuilder = new StringBuilder();
+                var element = XElement.Parse(xml);
+                var settings = new XmlWriterSettings
+                {
+                    OmitXmlDeclaration = true,
+                    Indent = true,
+                    NewLineOnAttributes = true // Makes the XML much easier to read
+                };
+
+                using (var xmlWriter = XmlWriter.Create(stringBuilder, settings))
+                {
+                    element.Save(xmlWriter);
+                }
+                return stringBuilder.ToString();
+            }
+            catch
+            {
+                return xml; // Return raw if parsing fails
             }
         }
     }

@@ -33,6 +33,9 @@ namespace SQLAtlas.Views
         /// </summary>
         public UserRoleView() : this((DatabaseObject?)null) { }
 
+        private List<DatabasePrincipal> _allPrincipals = new List<DatabasePrincipal>();
+        private List<RoleMembership> _allMemberships = new List<RoleMembership>();
+
         /// <summary>
         /// Constructor for single-object selection (Table/View/Proc).
         /// Accepts a single nullable object.
@@ -67,44 +70,69 @@ namespace SQLAtlas.Views
 
         private async void SecurityView_Loaded(object sender, RoutedEventArgs e)
         {
-            // Reset status of placeholders
-            NoPrincipalsTextBlock.Visibility = Visibility.Collapsed;
-
-            // Only proceed if the view was loaded without a selected object (e.g., from the Tools menu)
-            if (_selectedObjects is null || !_selectedObjects.Any())
+            try
             {
-                try
-                {
-                    // Fetch data
-                    var principals = await Task.Run(() => _metadataService.GetDatabasePrincipals());
-                    bool hasPrincipals = principals.Any();
+                _allPrincipals = await Task.Run(() => _metadataService.GetDatabasePrincipals());
+                _allMemberships = await Task.Run(() => _metadataService.GetRoleMemberships());
 
-                    if (hasPrincipals)
-                    {
-                        UsersRolesGrid.ItemsSource = principals;
-                        UsersRolesGrid.Visibility = Visibility.Visible;
+                Dispatcher.Invoke(() => {
+                    UsersRolesGrid.ItemsSource = _allPrincipals;
+                    MembershipsGrid.ItemsSource = _allMemberships;
+                    NoPrincipalsContainer.Visibility = (_allPrincipals.Any()) ? Visibility.Collapsed : Visibility.Visible;
 
-                        // CRITICAL FIX: Ensure headers are visible when data is present
-                        UsersRolesGrid.HeadersVisibility = DataGridHeadersVisibility.Column;
-                        NoPrincipalsTextBlock.Visibility = Visibility.Collapsed;
-                    }
-                    else
-                    {
-                        // If empty, hide the grid contents and headers, show message
-                        UsersRolesGrid.ItemsSource = null;
-                        UsersRolesGrid.Visibility = Visibility.Collapsed;
+                    // Set initial placeholder text
+                    SecuritySearchBox.Text = SecuritySearchBox.Tag.ToString();
+                    SecuritySearchBox.Opacity = 0.5;
+                });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error loading security data: {ex.Message}");
+            }
+        }
 
-                        // CRITICAL FIX: Hide the column headers (the "short blue bar")
-                        UsersRolesGrid.HeadersVisibility = DataGridHeadersVisibility.None;
+        private void SecuritySearchBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            string filter = SecuritySearchBox.Text.ToLower();
 
-                        NoPrincipalsTextBlock.Visibility = Visibility.Visible;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    // Handle error, display message
-                    MessageBox.Show($"Error loading user audit data: {ex.Message}", "Security Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
+            // Skip filtering if it's just the placeholder text
+            if (filter == SecuritySearchBox.Tag.ToString().ToLower()) return;
+
+            if (string.IsNullOrWhiteSpace(filter))
+            {
+                UsersRolesGrid.ItemsSource = _allPrincipals;
+                MembershipsGrid.ItemsSource = _allMemberships;
+            }
+            else
+            {
+                // Filter Principals by Name or Type
+                UsersRolesGrid.ItemsSource = _allPrincipals
+                    .Where(p => p.Name.ToLower().Contains(filter) || p.TypeDescription.ToLower().Contains(filter))
+                    .ToList();
+
+                // Filter Memberships by Role or Member Name
+                MembershipsGrid.ItemsSource = _allMemberships
+                    .Where(m => m.RoleName.ToLower().Contains(filter) || m.MemberName.ToLower().Contains(filter))
+                    .ToList();
+            }
+        }
+
+        // Simple Placeholder Logic
+        private void SearchBox_GotFocus(object sender, RoutedEventArgs e)
+        {
+            if (SecuritySearchBox.Text == SecuritySearchBox.Tag.ToString())
+            {
+                SecuritySearchBox.Text = "";
+                SecuritySearchBox.Opacity = 1.0;
+            }
+        }
+
+        private void SearchBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(SecuritySearchBox.Text))
+            {
+                SecuritySearchBox.Text = SecuritySearchBox.Tag.ToString();
+                SecuritySearchBox.Opacity = 0.5;
             }
         }
 

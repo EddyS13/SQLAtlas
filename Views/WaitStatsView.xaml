@@ -3,41 +3,75 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-             xmlns:local="clr-namespace:SQLAtlas.Views"
              mc:Ignorable="d" 
-             d:DesignHeight="450" d:DesignWidth="800">
-    <Grid>
+             d:DesignHeight="800" d:DesignWidth="1100">
 
-        <DockPanel Margin="10">
+    <Grid Background="{StaticResource DeepBackground}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
 
-            <Button Content="Refresh Performance Data" 
-                DockPanel.Dock="Top" 
-                Margin="0,0,0,10" 
-                Padding="5"
-                x:Name="RefreshPerformanceButton" 
-                Click="RefreshPerformanceButton_Click"/>
-
-            <TextBlock DockPanel.Dock="Top" 
-                Margin="0,0,0,10" 
-                FontWeight="ExtraBold"
-                FontSize="14"
-                Foreground="{StaticResource AccentColor}"
-                Text="Top 10 Wait Statistics (Cumulative Bottlenecks)"/>
-
-            <ScrollViewer VerticalScrollBarVisibility="Auto">
-
+        <Border Grid.Row="0" Background="{StaticResource CardBackground}" CornerRadius="12" Margin="20,20,20,10" Padding="25">
+            <Grid>
                 <StackPanel>
-
-                    <DataGrid x:Name="WaitStatsDataGrid" 
-                        CanUserAddRows="False"
-                        Height="Auto"
-                        HeadersVisibility="Column"/>
-
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="⏳" Foreground="{StaticResource AccentColor}" FontSize="22" Margin="0,0,15,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="WAIT STATISTICS" FontSize="24" FontWeight="Bold" Foreground="{StaticResource FontColor}"/>
+                    </StackPanel>
+                    <TextBlock Text="CUMULATIVE SERVER-WIDE BOTTLENECKS" Foreground="{StaticResource MutedFontColor}" Margin="37,5,0,0" FontSize="13" FontWeight="SemiBold" Opacity="0.7"/>
                 </StackPanel>
 
-            </ScrollViewer>
+                <Button x:Name="RefreshPerformanceButton" 
+                        HorizontalAlignment="Right" VerticalAlignment="Center"
+                        Padding="20,10" Click="RefreshPerformanceButton_Click"
+                        Background="{StaticResource BorderColor}" Foreground="{StaticResource FontColor}" 
+                        FontWeight="SemiBold" BorderThickness="0" Cursor="Hand">
+                    <Button.Resources>
+                        <Style TargetType="Border">
+                            <Setter Property="CornerRadius" Value="6"/>
+                        </Style>
+                    </Button.Resources>
+                    <TextBlock Text="REFRESH STATS"/>
+                </Button>
+            </Grid>
+        </Border>
 
-        </DockPanel>
+        <Border Grid.Row="1" Background="{StaticResource CardBackground}" CornerRadius="12" Margin="20,0,20,20" Padding="20">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
 
+                <TextBlock Grid.Row="0" Text="TOP 10 CUMULATIVE WAITS" Foreground="{StaticResource AccentColor}" FontSize="11" FontWeight="Bold" Margin="0,0,0,15" Opacity="0.8"/>
+
+                <DataGrid x:Name="WaitStatsDataGrid" Grid.Row="1"
+                          AlternatingRowBackground="{StaticResource GridAlternateRowBackground}"
+                          AutoGenerateColumns="False" 
+                          Background="Transparent" 
+                          BorderThickness="0">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="WAIT TYPE" Binding="{Binding WaitType}" Width="200" FontWeight="Bold"/>
+                        <DataGridTextColumn Header="WAIT TIME (s)" Binding="{Binding WaitTimeS, StringFormat=\{0:N0\}}" Width="120"/>
+                        <DataGridTextColumn Header="WAIT %" Binding="{Binding Percentage, StringFormat=\{0:P1\}}" Width="100"/>
+                        <DataGridTextColumn Header="AVG WAIT (ms)" Binding="{Binding AvgWaitMs, StringFormat=\{0:N2\}}" Width="120"/>
+                        <DataGridTextColumn Header="DESCRIPTION" Binding="{Binding Description}" Width="*">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextWrapping" Value="Wrap"/>
+                                    <Setter Property="Foreground" Value="{StaticResource MutedFontColor}"/>
+                                    <Setter Property="FontSize" Value="12"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+
+                <TextBlock x:Name="NoDataText" Grid.Row="1" Text="Analyzing server wait events..." 
+                           Foreground="{StaticResource MutedFontColor}" FontStyle="Italic"
+                           HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed"/>
+            </Grid>
+        </Border>
     </Grid>
 </UserControl>

@@ -3,49 +3,115 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-             mc:Ignorable="d"              
-             d:DesignHeight="600" d:DesignWidth="800">
+             mc:Ignorable="d" 
+             d:DesignHeight="800" d:DesignWidth="1200">
 
-    <DockPanel Margin="10">
+    <Grid Background="{StaticResource DeepBackground}">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
 
-        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,10">
+        <Grid Grid.Column="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
 
-            <TextBlock FontWeight="ExtraBold" FontSize="16"
-                       Foreground="{StaticResource AccentColor}"
-                       Text="Server &amp; Database Configuration Editor"
-                       VerticalAlignment="Center"/>
+            <Border Grid.Row="0" Background="{StaticResource CardBackground}" CornerRadius="12" Margin="20,20,20,10" Padding="20">
+                <Grid>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="🛠️" FontSize="22" Margin="0,0,15,0" VerticalAlignment="Center"/>
+                        <StackPanel>
+                            <TextBlock Text="CONFIGURATION EDITOR" FontSize="24" FontWeight="Bold" Foreground="{StaticResource FontColor}"/>
+                            <TextBlock Text="SERVER &amp; DATABASE TUNING" Foreground="{StaticResource MutedFontColor}" FontSize="12" FontWeight="SemiBold" Opacity="0.7"/>
+                        </StackPanel>
+                    </StackPanel>
 
-            <Button Content="Quick Reference Notes" 
-                    Click="ShowConfigNotesButton_Click" 
-                    Margin="15,0,0,0" 
-                    Width="150"
-                    VerticalAlignment="Center"/>
-        </StackPanel>
+                    <Button x:Name="RefreshConfigButton" Content="REFRESH ALL DATA" HorizontalAlignment="Right" VerticalAlignment="Center"
+                            Click="RefreshConfigButton_Click" Background="{StaticResource BorderColor}" 
+                            Foreground="White" Padding="20,10" FontWeight="SemiBold" BorderThickness="0" Cursor="Hand">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="6"/>
+                            </Style>
+                        </Button.Resources>
+                    </Button>
+                </Grid>
+            </Border>
 
-        <Button Content="Refresh Settings" DockPanel.Dock="Top" Margin="0,0,0,10"
-                x:Name="RefreshConfigButton" Click="RefreshConfigButton_Click"/>
+            <Border Grid.Row="1" Background="{StaticResource CardBackground}" CornerRadius="12" Margin="20,0,20,5" Padding="15">
+                <DockPanel>
+                    <Grid DockPanel.Dock="Top" Margin="0,0,0,10">
+                        <TextBlock Text="SERVER OPTIONS (SP_CONFIGURE)" Foreground="{StaticResource AccentColor}" 
+                                   FontWeight="Bold" VerticalAlignment="Center"/>
+                        <Button Content="SERVER GUIDANCE" Click="ShowConfigNotesButton_Click" 
+                                HorizontalAlignment="Right" Style="{StaticResource ActionButtonStyle}" Padding="10,4"/>
+                    </Grid>
 
-        <TextBlock DockPanel.Dock="Top" Text="Configurable Server Options (sp_configure)" FontWeight="Bold" Margin="0,0,0,5"/>
-        <DataGrid x:Name="ServerConfigGrid" AutoGenerateColumns="True" CanUserAddRows="False" DockPanel.Dock="Top" Height="300" Margin="0,0,0,20"/>
+                    <DataGrid x:Name="ServerConfigGrid" AutoGenerateColumns="False" 
+                              Background="Transparent" BorderThickness="0" CanUserAddRows="False"
+                              AlternatingRowBackground="{StaticResource GridAlternateRowBackground}">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="SETTING NAME" Binding="{Binding Name}" Width="1.5*" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="VALUE" Binding="{Binding Value}" Width="100" FontWeight="Bold" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="DESCRIPTION" Binding="{Binding Description}" Width="3*" IsReadOnly="True">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                        <Setter Property="ToolTip" Value="{Binding Description}"/>
+                                        <Setter Property="Opacity" Value="0.6"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </DockPanel>
+            </Border>
 
-        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,5">
-            <TextBlock Text="Database Configuration (Recovery Model, State, etc.)" 
-               FontWeight="Bold" 
-               Margin="0,0,15,0" 
-               VerticalAlignment="Center"/>
+            <GridSplitter Grid.Row="2" Height="8" HorizontalAlignment="Stretch" Background="Transparent" VerticalAlignment="Center"/>
 
-            <Button Content="Guidance Notes" 
-            Click="ShowDatabaseGuidanceButton_Click" 
-            Width="120"/>
-        </StackPanel>
+            <Border Grid.Row="3" Background="{StaticResource CardBackground}" CornerRadius="12" Margin="20,5,20,20" Padding="15">
+                <DockPanel>
+                    <Grid DockPanel.Dock="Top" Margin="0,0,0,10">
+                        <TextBlock Text="DATABASE ENGINE PROPERTIES" Foreground="{StaticResource AccentColor}" 
+                                   FontWeight="Bold" VerticalAlignment="Center"/>
+                        <Button Content="DATABASE GUIDANCE" Click="ShowDatabaseGuidanceButton_Click" 
+                                HorizontalAlignment="Right" Style="{StaticResource ActionButtonStyle}" Padding="10,4"/>
+                    </Grid>
 
-        <DataGrid x:Name="DatabaseConfigGrid" AutoGenerateColumns="False" CanUserAddRows="False" 
-                  DockPanel.Dock="Top" Height="200" Margin="0,0,0,15">
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="Property Name" Binding="{Binding Name}" Width="*"/>
-                <DataGridTextColumn Header="Current Value" Binding="{Binding CurrentValue}" Width="2*"/>
-            </DataGrid.Columns>
-        </DataGrid>
+                    <DataGrid x:Name="DatabaseConfigGrid" AutoGenerateColumns="False" 
+                              Background="Transparent" BorderThickness="0" CanUserAddRows="False">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="PROPERTY NAME" Binding="{Binding Name}" Width="1.5*" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="CURRENT STATE" Binding="{Binding CurrentValue}" Width="2*" IsReadOnly="True"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </DockPanel>
+            </Border>
+        </Grid>
 
-    </DockPanel>
+        <Border Grid.Column="1" x:Name="GuidancePanel" Width="320" 
+                Background="{StaticResource CardBackground}" 
+                BorderBrush="{StaticResource BorderColor}" BorderThickness="1,0,0,0"
+                Visibility="Collapsed">
+            <DockPanel Margin="20">
+                <StackPanel DockPanel.Dock="Top" Margin="0,0,0,20">
+                    <Button Content="CLOSE [X]" HorizontalAlignment="Right" 
+                            Style="{StaticResource ActionButtonStyle}" Click="CloseGuidance_Click"
+                            Foreground="{StaticResource AccentColor}"/>
+                    <TextBlock x:Name="GuidanceHeader" Text="GUIDANCE" FontSize="18" 
+                               FontWeight="Bold" Foreground="{StaticResource AccentColor}" Margin="0,10,0,5"/>
+                    <Separator Background="{StaticResource AccentColor}" Opacity="0.3"/>
+                </StackPanel>
+
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <TextBlock x:Name="GuidanceContent" TextWrapping="Wrap" 
+                               Foreground="White" FontSize="13" LineHeight="22" Opacity="0.9"/>
+                </ScrollViewer>
+            </DockPanel>
+        </Border>
+    </Grid>
 </UserControl>

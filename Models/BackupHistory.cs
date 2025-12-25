@@ -8,11 +8,21 @@ namespace SQLAtlas.Models
 {
     public class BackupHistory
     {
-        public string DatabaseName { get; set; } = string.Empty;
+        public string DatabaseName { get; set; } = "";
+        public string BackupType { get; set; } = "";
+
+        // Error Fix: Added BackupDate
         public DateTime BackupDate { get; set; }
-        public string BackupType { get; set; } = string.Empty; // Full, Diff, Log
-        public string UserName { get; set; } = string.Empty;
+
+        // Error Fix: Added UserName
+        public string UserName { get; set; } = "";
+
+        // Error Fix: Matches the decimal coming from SQL query
         public decimal SizeMB { get; set; }
-        public string DeviceName { get; set; } = string.Empty;
+
+        public string DeviceName { get; set; } = "";
+
+        // UI Logic
+        public bool IsStale => BackupDate < DateTime.Now.AddHours(-24);
     }
 }

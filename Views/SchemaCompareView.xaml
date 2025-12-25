@@ -3,42 +3,129 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-             xmlns:local="clr-namespace:SQLAtlas.Views"
              mc:Ignorable="d" 
-             d:DesignHeight="450" d:DesignWidth="800">
-    <DockPanel Margin="10">
-        <TextBlock DockPanel.Dock="Top" Margin="0,0,0,15" FontWeight="ExtraBold" FontSize="16"
-               Foreground="{StaticResource AccentColor}"
-               Text="Schema Comparison and Synchronization"/>
+             d:DesignHeight="800" d:DesignWidth="1100">
 
-        <StackPanel DockPanel.Dock="Top" Margin="0,0,0,15">
-            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                <TextBlock Text="Target Server:" Margin="0,5,5,0"/>
-                <TextBox x:Name="TargetServerTextBox" Width="150" Margin="0,0,10,0" Text="localhost"/>
-                <TextBlock Text="Target Database:" Margin="0,5,5,0"/>
-                <TextBox x:Name="TargetDatabaseTextBox" Width="150" Margin="0,0,10,0" Text="TargetDB"/>
-                <CheckBox x:Name="WindowsAuthCheckBox" Content="Use Windows Auth" Margin="10,5,0,0" IsChecked="True" 
-                         Click="AuthType_Changed"/>
+    <Grid Background="{StaticResource DeepBackground}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Background="{StaticResource CardBackground}" CornerRadius="12" Margin="20,20,20,10" Padding="25">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
+                    <TextBlock Text="🔄" FontSize="22" Margin="0,0,15,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="SCHEMA COMPARISON ENGINE" FontSize="24" FontWeight="Bold" Foreground="{StaticResource FontColor}"/>
+                </StackPanel>
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="40"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="20"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="TARGET SERVER" Foreground="{StaticResource MutedFontColor}" FontSize="10" FontWeight="Bold" Margin="0,0,0,5"/>
+
+                    <Grid Grid.Row="0" Grid.Column="2">
+                        <TextBlock x:Name="UserLabel" Text="SQL USERNAME" Foreground="{StaticResource MutedFontColor}" 
+                            FontSize="10" FontWeight="Bold" Margin="0,0,0,5" Visibility="Collapsed" HorizontalAlignment="Left"/>
+
+                        <CheckBox x:Name="WindowsAuthCheckBox" Content="Use Windows Authorization" 
+                            Foreground="White" IsChecked="True" Click="AuthType_Changed" 
+                            HorizontalAlignment="Right" VerticalAlignment="Bottom"/>
+                    </Grid>
+
+                    <TextBox x:Name="TargetServerTextBox" Grid.Row="1" Grid.Column="0" Text="localhost" Padding="10" 
+                     Background="{StaticResource DeepBackground}" Foreground="White" 
+                     BorderThickness="1" BorderBrush="{StaticResource BorderColor}"/>
+
+                    <StackPanel x:Name="UserPanel" Grid.Row="1" Grid.Column="2" Visibility="Collapsed">
+                        <TextBox x:Name="TargetUserTextBox" Padding="10" 
+                         Background="{StaticResource DeepBackground}" Foreground="White" 
+                         BorderThickness="1" BorderBrush="{StaticResource BorderColor}"/>
+                    </StackPanel>
+
+                    <TextBlock Grid.Row="3" Grid.Column="0" Text="TARGET DATABASE" Foreground="{StaticResource MutedFontColor}" FontSize="10" FontWeight="Bold" Margin="0,0,0,5"/>
+                    <TextBlock x:Name="PassLabel" Grid.Row="3" Grid.Column="2" Text="SQL PASSWORD" Foreground="{StaticResource MutedFontColor}" 
+                       FontSize="10" FontWeight="Bold" Margin="0,0,0,5" Visibility="Collapsed"/>
+
+                    <TextBox x:Name="TargetDatabaseTextBox" Grid.Row="4" Grid.Column="0" Text="TargetDB" Padding="10" 
+                     Background="{StaticResource DeepBackground}" Foreground="White" 
+                     BorderThickness="1" BorderBrush="{StaticResource BorderColor}"/>
+
+                    <StackPanel x:Name="PassPanel" Grid.Row="4" Grid.Column="2" Visibility="Collapsed">
+                        <PasswordBox x:Name="TargetPasswordBox" Padding="10" 
+                             Background="{StaticResource DeepBackground}" Foreground="White" 
+                             BorderThickness="1" BorderBrush="{StaticResource BorderColor}"/>
+                    </StackPanel>
+
+                    <Button x:Name="CompareButton" Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="3"
+                    Content="RUN COMPARISON" Click="CompareButton_Click" 
+                    Margin="0,30,0,0" Padding="20,12" Background="{StaticResource AccentColor}" 
+                    Foreground="White" FontWeight="Bold" BorderThickness="0" Cursor="Hand"
+                    Style="{StaticResource ActionButtonStyle}"/>
+                </Grid>
             </StackPanel>
+        </Border>
 
-            <StackPanel Orientation="Horizontal" x:Name="CredentialPanel" Visibility="Collapsed">
-                <TextBlock Text="Username:" Margin="0,5,5,0"/>
-                <TextBox x:Name="TargetUserTextBox" Width="150" Margin="0,0,10,0"/>
-                <TextBlock Text="Password:" Margin="0,5,5,0"/>
-                <PasswordBox x:Name="TargetPasswordBox" Width="150" Margin="0,0,10,0"/>
-            </StackPanel>
+        <Border Grid.Row="1" Background="{StaticResource CardBackground}" CornerRadius="12" Margin="20,0,20,20" Padding="20">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" Text="DETECTED SCHEMA DIFFERENCES" Foreground="{StaticResource AccentColor}" FontWeight="Bold" Margin="0,0,0,15"/>
 
-            <Button x:Name="CompareButton" Content="Compare Schemas" Click="CompareButton_Click" Width="150" HorizontalAlignment="Left" Margin="0,10,0,0"/>
-        </StackPanel>
+                <DataGrid x:Name="DifferencesDataGrid" AutoGenerateColumns="False" 
+                          Background="Transparent" BorderThickness="0" CanUserAddRows="False"
+                          AlternatingRowBackground="{StaticResource GridAlternateRowBackground}">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="OBJECT" Binding="{Binding ObjectName}" Width="1.5*"/>
+                        <DataGridTextColumn Header="COLUMN" Binding="{Binding ColumnName}" Width="1*"/>
 
-        <DataGrid x:Name="DifferencesDataGrid" AutoGenerateColumns="False" CanUserAddRows="False">
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="Object Name" Binding="{Binding ObjectName}" Width="*"/>
-                <DataGridTextColumn Header="Column/Type" Binding="{Binding ColumnName}" Width="*"/>
-                <DataGridTextColumn Header="Data Type" Binding="{Binding DataType}" Width="Auto"/>
-                <DataGridTextColumn Header="Difference Type" Binding="{Binding DifferenceType}" Width="1.5*"/>
-                <DataGridTextColumn Header="Synchronization Script" Binding="{Binding SynchronizationScript}" Width="2*"/>
-            </DataGrid.Columns>
-        </DataGrid>
-    </DockPanel>
+                        <DataGridTemplateColumn Header="TYPE" Width="180">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Border CornerRadius="10" Padding="8,2" HorizontalAlignment="Left" x:Name="DiffPill" Background="#F59E0B">
+                                        <TextBlock Text="{Binding DifferenceType}" FontSize="10" FontWeight="Bold" Foreground="White"/>
+                                    </Border>
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding DifferenceType}" Value="TABLE Missing in Target">
+                                            <Setter TargetName="DiffPill" Property="Background" Value="#EF4444"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding DifferenceType}" Value="Column Missing in Target">
+                                            <Setter TargetName="DiffPill" Property="Background" Value="#3B82F6"/>
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <DataGridTemplateColumn Header="SYNC SCRIPT" Width="2*">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{Binding SynchronizationScript}" VerticalAlignment="Center" 
+                                                   TextTrimming="CharacterEllipsis" Opacity="0.7" FontFamily="Consolas"/>
+                                        <Button Grid.Column="1" Content="Copy" Style="{StaticResource ActionButtonStyle}" 
+                                                Margin="5,0,0,0" Click="CopyScript_Click"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </DockPanel>
+        </Border>
+    </Grid>
 </UserControl>

@@ -4,162 +4,147 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              mc:Ignorable="d" 
-             d:DesignHeight="800" d:DesignWidth="800">
+             d:DesignHeight="800" d:DesignWidth="1100">
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto">
-        
-        <StackPanel Margin="10">
+    <Grid Background="{StaticResource DeepBackground}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
 
-            <Grid Margin="0,0,0,10">
-                
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
-                
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
-                
-                <TextBlock Grid.Column="0" 
-                    Text="Created On: " 
-                    FontWeight="Bold"/>
-                
-                <TextBlock Grid.Column="1" 
-                    x:Name="CreateDateTextBlock" 
-                    Margin="5,0,0,0"/>
-                
-                <TextBlock Grid.Row="1" 
-                    Grid.Column="0" 
-                    Text="Last Modified: " 
-                    FontWeight="Bold"/>
-                
-                <TextBlock Grid.Row="1"
-                    Grid.Column="1" 
-                    x:Name="ModifyDateTextBlock" 
-                    Margin="5,0,0,0"/>
-                
-            </Grid>
+        <Grid.Resources>
+            <Style TargetType="TabItem">
+                <Setter Property="FontSize" Value="14"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="TabItem">
+                            <Border x:Name="Border" Margin="0,0,20,10" Padding="15,10" Background="Transparent" BorderThickness="0,0,0,3">
+                                <ContentPresenter ContentSource="Header" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter TargetName="Border" Property="BorderBrush" Value="{StaticResource AccentColor}"/>
+                                    <Setter Property="Foreground" Value="{StaticResource AccentColor}"/>
+                                </Trigger>
+                                <Trigger Property="IsSelected" Value="False">
+                                    <Setter Property="Foreground" Value="{StaticResource MutedFontColor}"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
 
-            <TextBlock Text="Parameters" 
-                FontWeight="Bold" 
-                Margin="0,0,0,5"/>
-            
-            <Grid HorizontalAlignment="Left" 
-                  Margin="0,0,0,0">
-                
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
+            <Style x:Key="EmptyStateText" TargetType="TextBlock">
+                <Setter Property="Foreground" Value="{StaticResource MutedFontColor}"/>
+                <Setter Property="FontSize" Value="14"/>
+                <Setter Property="FontStyle" Value="Italic"/>
+                <Setter Property="HorizontalAlignment" Value="Center"/>
+                <Setter Property="Margin" Value="0,40"/>
+                <Setter Property="Visibility" Value="Collapsed"/>
+            </Style>
+        </Grid.Resources>
 
-                <TextBlock x:Name="NoParametersTextBlock" 
-                    Grid.Row="0"
-                    Text="— No parameters defined for this object. —" 
-                    FontStyle="Italic" 
-                    HorizontalAlignment="Center" 
-                    VerticalAlignment="Center"
-                    Foreground="{StaticResource FontColor}"
-                    Margin="10"
-                    Visibility="Collapsed"/>
+        <Border Grid.Row="0" Background="{StaticResource CardBackground}" CornerRadius="12" Margin="20,20,20,10" Padding="25">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock x:Name="ObjectIconHeader" Text="⚡" Foreground="{StaticResource AccentColor}" FontSize="22" Margin="0,0,15,0" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="ObjectContextHeader" FontSize="26" FontWeight="Bold" Foreground="{StaticResource FontColor}" Text="OBJECT NAME"/>
+                </StackPanel>
 
-                <DataGrid x:Name="ParameterGrid" 
-                    Grid.Row="0" 
-                    HorizontalAlignment="Left" 
-                    Margin="0,0,0,0"
-                    Width="Auto" 
-                    Height="Auto" 
-                    AutoGenerateColumns="True"
-                    CanUserAddRows="False"/>
+                <TextBlock x:Name="ObjectSubHeader" Foreground="{StaticResource MutedFontColor}" FontSize="14" Margin="37,5,0,0"/>
 
-            </Grid>
+                <StackPanel Orientation="Horizontal" Margin="37,10,0,0">
+                    <TextBlock Text="CREATED: " Foreground="{StaticResource MutedFontColor}" FontSize="11" FontWeight="Bold"/>
+                    <TextBlock x:Name="CreateDateTextBlock" Foreground="{StaticResource FontColor}" FontSize="11" Margin="5,0,20,0"/>
+                    <TextBlock Text="MODIFIED: " Foreground="{StaticResource MutedFontColor}" FontSize="11" FontWeight="Bold"/>
+                    <TextBlock x:Name="ModifyDateTextBlock" Foreground="{StaticResource FontColor}" FontSize="11"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
 
-            <TextBlock Text="Dependencies" 
-                FontWeight="Bold" 
-                Margin="0,15,0,5"/>
+        <Border Grid.Row="1" Background="{StaticResource CardBackground}" CornerRadius="12" Margin="20,0,20,20" Padding="20">
+            <TabControl x:Name="CodeTabControl" Background="Transparent" BorderThickness="0">
 
-            <Grid HorizontalAlignment="Left" 
-                  Margin="0,0,0,0">
-                
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
+                <TabItem Header="PARAMETERS">
+                    <Grid Margin="0,15,0,0">
+                        <DataGrid x:Name="ParameterGrid" AlternatingRowBackground="{StaticResource GridAlternateRowBackground}"/>
+                        <TextBlock x:Name="NoParametersTextBlock" Text="— No parameters defined for this object. —" Style="{StaticResource EmptyStateText}"/>
+                    </Grid>
+                </TabItem>
 
-                <TextBlock x:Name="NoDependenciesTextBlock" 
-                    Grid.Row="0"
-                    Text="— No dependencies found for this object. —" 
-                    FontStyle="Italic" 
-                    HorizontalAlignment="Center" 
-                    VerticalAlignment="Center"
-                    Foreground="{StaticResource FontColor}"
-                    Margin="10"
-                    Visibility="Collapsed"/>
+                <TabItem Header="DEPENDENCIES">
+                    <Grid Margin="0,15,0,0">
+                        <DataGrid x:Name="DependencyGrid" AlternatingRowBackground="{StaticResource GridAlternateRowBackground}"/>
+                        <TextBlock x:Name="NoDependenciesTextBlock" Text="— No dependencies found for this object. —" Style="{StaticResource EmptyStateText}"/>
+                    </Grid>
+                </TabItem>
 
-                <DataGrid x:Name="DependencyGrid" 
-                    Grid.Row="0" 
-                    HorizontalAlignment="Left" 
-                    Margin="0"
-                    Width="Auto" 
-                    Height="Auto" 
-                    AutoGenerateColumns="True"
-                    CanUserAddRows="False"/>
-                
-            </Grid>
+                <TabItem Header="PERMISSIONS">
+                    <Grid Margin="0,15,0,0">
+                        <DataGrid x:Name="PermissionsDataGrid" AutoGenerateColumns="False" AlternatingRowBackground="{StaticResource GridAlternateRowBackground}">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="PRINCIPAL" Binding="{Binding PrincipalName}" Width="*"/>
+                                <DataGridTextColumn Header="PERMISSION" Binding="{Binding PermissionType}" Width="*"/>
+                                <DataGridTemplateColumn Header="STATE" Width="120">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Border x:Name="StatePill" CornerRadius="10" Padding="10,2" HorizontalAlignment="Left">
+                                                <TextBlock Text="{Binding PermissionState}" FontWeight="Bold" FontSize="12" Foreground="White"/>
+                                            </Border>
+                                            <DataTemplate.Triggers>
+                                                <DataTrigger Binding="{Binding PermissionState}" Value="GRANT">
+                                                    <Setter TargetName="StatePill" Property="Background" Value="{StaticResource SuccessColor}"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding PermissionState}" Value="DENY">
+                                                    <Setter TargetName="StatePill" Property="Background" Value="{StaticResource ErrorColor}"/>
+                                                </DataTrigger>
+                                            </DataTemplate.Triggers>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                        <TextBlock x:Name="NoPermissionsTextBlock" Text="— No explicit permissions defined for this object. —" Style="{StaticResource EmptyStateText}"/>
+                    </Grid>
+                </TabItem>
 
-            <TextBlock Text="Object Permissions" 
-                FontWeight="Bold" 
-                Margin="0,15,0,5"/>
-            
-            <Grid HorizontalAlignment="Left" 
-                Margin="0,0,0,0">
-                
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
+                <TabItem Header="SQL CODE">
+                    <Grid Margin="0,15,0,0">
+                        <Border Background="{StaticResource DeepBackground}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource BorderColor}">
+                            <Grid>
+                                <Button x:Name="CopyCodeButton" 
+                                        Content="COPY" 
+                                        HorizontalAlignment="Right" VerticalAlignment="Top"
+                                        Margin="0,10,10,0" Padding="12,5" Panel.ZIndex="10"
+                                        Background="{StaticResource BorderColor}" Foreground="{StaticResource MutedFontColor}" 
+                                        FontSize="10" FontWeight="Bold" BorderThickness="0"
+                                        Cursor="Hand" Click="CopyCodeButton_Click">
+                                    <Button.Resources>
+                                        <Style TargetType="Border">
+                                            <Setter Property="CornerRadius" Value="4"/>
+                                        </Style>
+                                    </Button.Resources>
+                                </Button>
 
-                <TextBlock x:Name="NoPermissionsTextBlock" 
-                    Grid.Row="0"
-                    Text="— No explicit permissions defined for this object. —" 
-                    FontStyle="Italic" 
-                    HorizontalAlignment="Center" 
-                    VerticalAlignment="Center"
-                    Foreground="{StaticResource FontColor}"
-                    Margin="10"
-                    Visibility="Collapsed"/>
+                                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                    <TextBox x:Name="CodeDefinitionTextBox" 
+                                             IsReadOnly="True" 
+                                             TextWrapping="Wrap"
+                                             FontFamily="Consolas" 
+                                             FontSize="14" 
+                                             BorderThickness="0" 
+                                             Background="Transparent" 
+                                             Foreground="{StaticResource CodeForeground}" 
+                                             AcceptsReturn="True"
+                                             Padding="15,45,15,15" />
+                                </ScrollViewer>
+                            </Grid>
+                        </Border>
+                    </Grid>
+                </TabItem>
 
-                <DataGrid x:Name="PermissionsDataGrid" 
-                    Grid.Row="0" 
-                    HorizontalAlignment="Left" 
-                    Margin="0"
-                    Width="Auto" 
-                    Height="Auto" 
-                    CanUserAddRows="False"
-                    AutoGenerateColumns="True"/>
-                
-            </Grid>
-
-            <TextBlock Text="Object Definition" 
-                FontWeight="Bold" 
-                Margin="0,15,0,5"/>
-            
-            <ScrollViewer MaxHeight="400" 
-                BorderBrush="{StaticResource BorderColor}" 
-                BorderThickness="1" 
-                Background="{StaticResource WindowBackground}">
-                
-                <TextBox x:Name="CodeDefinitionTextBox" 
-                    IsReadOnly="True" 
-                    TextWrapping="Wrap" 
-                    FontFamily="Consolas" 
-                    FontSize="12" 
-                    BorderThickness="0" 
-                    Background="Transparent" 
-                    AcceptsReturn="True"/>
-                
-            </ScrollViewer>
-
-        </StackPanel>
-        
-    </ScrollViewer>
-    
+            </TabControl>
+        </Border>
+    </Grid>
 </UserControl>

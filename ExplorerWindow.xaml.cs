@@ -7,11 +7,12 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
-using System.Reflection;
+using System.Windows.Media;
 
 namespace SQLAtlas
 {
@@ -46,12 +47,10 @@ namespace SQLAtlas
             // 2. Set Status Bar and Version Info
             Version? appVersion = Assembly.GetExecutingAssembly().GetName().Version;
             VersionNumberTextBlock.Text = $"v{appVersion?.ToString() ?? "N/A"}";
-            VersionDateTextBlock.Text = $"Build: {DateTime.Now:yyyy-MM-dd}";
+            VersionDateTextBlock.Text = "2025.12.25";
 
-            //VersionNumberTextBlock.Text = "v0.8.5";
-            //VersionDateTextBlock.Text = $"{DateTime.Now:yyyy-MM-dd}";
-
-            CurrentDatabaseStatusBlock.Text = $"DB: {databaseName ?? "N/A"} on {serverName ?? "N/A"}";
+            CurrentDatabaseNameBlock.Text = databaseName ?? "N/A";
+            CurrentServerNameBlock.Text = serverName ?? "N/A";
 
             // 3. Set Initial UI State
             if (RibbonMenu.Items.Count > 0)
@@ -68,14 +67,19 @@ namespace SQLAtlas
         private void LoadSchemaCollection(Dictionary<string, List<DatabaseObject>> groupedObjects)
         {
             var flatList = groupedObjects.SelectMany(g => g.Value).ToList();
+            _schemaObjectCollectionView = CollectionViewSource.GetDefaultView(flatList);
 
-            ICollectionView view = CollectionViewSource.GetDefaultView(flatList);
-            _schemaObjectCollectionView = view;
-
-            // Apply grouping for visual hierarchy in the sidebar
-            if (_schemaObjectCollectionView is not null && _schemaObjectCollectionView.CanGroup == true)
+            if (_schemaObjectCollectionView != null && _schemaObjectCollectionView.CanGroup)
             {
                 _schemaObjectCollectionView.GroupDescriptions.Clear();
+                _schemaObjectCollectionView.SortDescriptions.Clear();
+
+                // 1. Sort the folders (Groups) alphabetically
+                _schemaObjectCollectionView.SortDescriptions.Add(new SortDescription("TypeDescription", ListSortDirection.Ascending));
+
+                // 2. Sort the items INSIDE the folders alphabetically by name
+                _schemaObjectCollectionView.SortDescriptions.Add(new SortDescription("Name", ListSortDirection.Ascending));
+
                 _schemaObjectCollectionView.GroupDescriptions.Add(new PropertyGroupDescription("TypeDescription"));
             }
         }
@@ -85,18 +89,51 @@ namespace SQLAtlas
         /// <summary>
         /// Handles the change of the top Ribbon Menu context to update the sidebar.
         /// </summary>
+        private void RibbonMenu_Loaded(object sender, RoutedEventArgs e)
+        {
+            // Force the first tab to be selected and the logic to run
+            RibbonMenu.SelectedIndex = 0;
+            var firstTab = RibbonMenu.SelectedItem as TabItem;
+            if (firstTab != null)
+            {
+                string? headerText = firstTab.Header?.ToString();
+                if (!string.IsNullOrEmpty(headerText))
+                {
+                    LoadSidebarContent(headerText);
+                }
+            }
+        }
+
         private void RibbonMenu_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (e.Source is TabControl && RibbonMenu.SelectedItem is TabItem selectedTab)
+            // Ensure this ONLY runs for the TabControl, not the ListBox inside it
+            if (e.OriginalSource is TabControl)
             {
-                // 1. CRITICAL FIX: Clear the main content host before switching
-                MainContentHost.Content = null;
+                if (RibbonMenu.SelectedItem is TabItem selectedTab)
+                {
+                    string? tabName = selectedTab.Header?.ToString();
+                    if (!string.IsNullOrEmpty(tabName))
+                    {
+                        LoadSidebarContent(tabName);
+                        UpdateMainView(tabName);
+                    }
+                }
+            }
+        }
 
-                // 2. Clear any lingering selection in the sidebar list
-                SidebarListBox.SelectedItem = null;
-
-                string header = selectedTab.Header.ToString() ?? string.Empty;
-                LoadSidebarContent(header);
+        private void UpdateMainView(string tabName)
+        {
+            switch (tabName)
+            {
+                case "Performance":
+                    MainContentHost.Content = new Views.PerformanceOverview();
+                    break;
+                case "Schema Explorer":
+                    MainContentHost.Content = null;
+                    break;
+                default:
+                    MainContentHost.Content = new TextBlock { Text = tabName + " View", Foreground = Brushes.White };
+                    break;
             }
         }
 
@@ -105,6 +142,9 @@ namespace SQLAtlas
         /// </summary>
         private void LoadSidebarContent(string category)
         {
+            if (string.IsNullOrEmpty(category))
+                return;
+
             SidebarListBox.SelectedItem = null; // Clear any previous selection
 
             // --- ROUTE OBJECTS VS TOOLS ---
@@ -113,7 +153,7 @@ namespace SQLAtlas
                 // Display the grouped schema list
                 SidebarHeaderTextBlock.Text = "SELECT SCHEMA OBJECT";
                 SidebarListBox.ItemsSource = _schemaObjectCollectionView;
-                SidebarSearchTextBox.Visibility = Visibility.Visible;
+                SearchBoxContainer.Visibility = Visibility.Visible;
             }
             else
             {
@@ -123,7 +163,7 @@ namespace SQLAtlas
                 
                 // CRITICAL FIX: Assign directly without grouping
                 SidebarListBox.ItemsSource = toolItems;
-                SidebarSearchTextBox.Visibility = Visibility.Collapsed;
+                SearchBoxContainer.Visibility = Visibility.Collapsed;
             }
         }
 
@@ -181,17 +221,25 @@ namespace SQLAtlas
         /// </summary>
         private void SidebarListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (SidebarListBox.SelectedItem is DatabaseObject dbObject)
+            // 1. Get ALL selected items from the ListBox
+            var selectedItems = SidebarListBox.SelectedItems.Cast<object>().ToList();
+
+            if (selectedItems.Count > 0)
             {
-                // Routing for selected database objects (Tables/Views/Procs)
-                LoadMetadataView(new List<DatabaseObject> { dbObject }, isMultiSelect: false);
+                // 2. Check if we are dealing with DatabaseObjects (Tables/Procs)
+                if (selectedItems.All(x => x is DatabaseObject))
+                {
+                    var dbObjects = selectedItems.Cast<DatabaseObject>().ToList();
+
+                    // Pass the whole list. isMultiSelect is true if count > 1
+                    LoadMetadataView(dbObjects, isMultiSelect: dbObjects.Count > 1);
+                }
+                // 3. Otherwise, handle Tool selection (Diagnostics)
+                else if (SidebarListBox.SelectedItem is string selectedTool)
+                {
+                    LoadDiagnosticView(selectedTool);
+                }
             }
-            else if (SidebarListBox.SelectedItem is string selectedTool)
-            {
-                // Routing for selected diagnostic tool
-                LoadDiagnosticView(selectedTool);
-            }
-            // If neither, do nothing - user hasn't selected anything yet
         }
 
         /// <summary>
@@ -226,18 +274,23 @@ namespace SQLAtlas
                 "Query Execution Plan Visualizer" => new Views.QueryPlanView(),
                 //High Availability Tools
                 "High Availability Status Dashboard" => new Views.HighAvailabilityView(),
-
                 // MISC TOOLS              
                 "Activity & Storage" => new ActivityView(),
                 "Security Permissions" => new SecurityView(),
                 "Performance" => new PerformanceView(),
                 "Top Query Analysis" => new PerformanceView(),
-                //"Index Optimization Advisor" => new IndexView(), -- THIS NEEDS TO BE DELETED
                 _ => null,
             };
 
             // Fallback ensures ContentHost always receives a valid object
-            MainContentHost.Content = newView ?? new UserControl { Content = new TextBlock { Text = $"View for '{viewName}' not found." } };
+            MainContentHost.Content = newView ?? new UserControl 
+            { 
+                Content = new TextBlock 
+                { 
+                    Text = $"View for '{viewName}' not found.",
+                    Foreground = Brushes.White
+                } 
+            };
         }
 
         /// <summary>
@@ -247,27 +300,72 @@ namespace SQLAtlas
         {
             UserControl? newView = null;
 
-            if (isMultiSelect)
+            // CASE: MULTI-SELECT (Comparison Mode)
+            if (selectedObjects.Count == 2)
             {
-                // MULTI-SELECT: Load Relationship View for FK comparison
-                newView = new RelationshipsView(selectedObjects, isMultiSelect: true);
+                // If both are tables/views, open SchemaExplorer in Comparison Mode
+                newView = new SchemaExplorer(selectedObjects);
             }
+            // CASE: SINGLE SELECT
             else if (selectedObjects.Count == 1)
             {
                 DatabaseObject dbObject = selectedObjects.First();
-                string objectType = dbObject.Type.ToUpperInvariant();
+                string type = dbObject.Type.ToUpperInvariant();
 
-                if (objectType == "U" || objectType == "V")
+                if (type == "U" || type == "V" || type == "TABLES" || type == "VIEWS")
                 {
-                    newView = new ColumnsView(dbObject);
+                    newView = new SchemaExplorer(dbObject);
                 }
-                else if (objectType == "P" || objectType.Contains("F"))
+                else if (type == "P" || type == "FN" || type == "TF" || type == "IF" ||
+                         type == "STORED PROCEDURES" || type == "SCALAR FUNCTIONS")
                 {
                     newView = new CodeView(dbObject);
                 }
             }
 
-            MainContentHost.Content = newView ?? new UserControl { Content = new TextBlock { Text = "Select an object." } };
+            // Assign the view or show the error state
+            MainContentHost.Content = newView ?? new UserControl
+            {
+                Content = new TextBlock
+                {
+                    Text = selectedObjects.Count > 2
+                        ? "Please select only 2 tables for comparison."
+                        : $"Metadata view not found for: {selectedObjects.FirstOrDefault()?.TypeDescription}",
+                    Foreground = Brushes.White,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center
+                }
+            };
+        }
+
+        private void SidebarListBox_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            // If Ctrl or Shift is held, let the default WPF multi-select logic handle it
+            if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control) || Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
+            {
+                return;
+            }
+
+            // Otherwise, find the item and select it normally
+            Visual visual = (Visual)e.OriginalSource;
+            ListBoxItem? item = FindAncestor<ListBoxItem>(visual);
+
+            if (item != null)
+            {
+                // Only force selection if we aren't trying to multi-select
+                item.IsSelected = true;
+            }
+        }
+
+        // Helper to climb the visual tree
+        private static T? FindAncestor<T>(DependencyObject current) where T : DependencyObject
+        {
+            do
+            {
+                if (current is T ancestor) return ancestor;
+                current = VisualTreeHelper.GetParent(current);
+            } while (current != null);
+            return null;
         }
 
         // --- SEARCH HANDLER ---

@@ -1,17 +1,18 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Windows.Media;
 
 namespace SQLAtlas.Models
 {
     public class SqlAgentJob
     {
-        public string JobName { get; set; } = string.Empty;
-        public string Status { get; set; } = string.Empty;
-        public string Category { get; set; } = string.Empty;
-        public string NextRunDate { get; set; } = string.Empty;
-        public string NextRunTime { get; set; } = string.Empty;
+        public string JobName { get; set; } = "";
+        public bool IsEnabled { get; set; }
+        public string LastRunOutcome { get; set; } = "";
+        public DateTime? LastRunDate { get; set; }
+        public DateTime? NextRunDate { get; set; }
+        public string LastRunDuration { get; set; } = "";
+
+        // Keep the text helper
+        public string IsEnabledDisplay => IsEnabled ? "YES" : "NO";
     }
 }

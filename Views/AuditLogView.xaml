@@ -3,37 +3,84 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-             xmlns:local="clr-namespace:SQLAtlas.Views"
              mc:Ignorable="d" 
-             d:DesignHeight="450" d:DesignWidth="800">
-    
-    <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <StackPanel Margin="10">
+             d:DesignHeight="800" d:DesignWidth="1100">
 
-            <TextBlock Text="Recent Security Events (Failed Logins/Errors)" 
-                   FontWeight="ExtraBold" 
-                   FontSize="16" 
-                   Foreground="{StaticResource AccentColor}" 
-                   Margin="0,0,0,10"/>
+    <Grid Background="{StaticResource DeepBackground}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
 
-            <Grid Height="Auto" MaxHeight="300" Margin="0,0,0,15">
+        <Border Grid.Row="0" Background="{StaticResource CardBackground}" CornerRadius="12" Margin="20,20,20,10" Padding="25">
+            <Grid>
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="📜" Foreground="{StaticResource AccentColor}" FontSize="22" Margin="0,0,15,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="SECURITY AUDIT LOGS" FontSize="24" FontWeight="Bold" Foreground="{StaticResource FontColor}"/>
+                    </StackPanel>
+                    <TextBlock Text="RECENT FAILED LOGINS, ERRORS, AND SECURITY EVENTS" Foreground="{StaticResource MutedFontColor}" Margin="37,5,0,0" FontSize="13" FontWeight="SemiBold" Opacity="0.7"/>
+                </StackPanel>
 
-                <DataGrid x:Name="AuditLogGrid" 
-              HeadersVisibility="Column" 
-              Height="Auto" 
-              MaxHeight="300" 
-              CanUserAddRows="False"/>
-
-                <TextBlock x:Name="NoLogsTextBlock" 
-               Text="— Audit logs are empty or access is restricted. —" 
-               FontStyle="Italic" 
-               HorizontalAlignment="Center" 
-               VerticalAlignment="Center" 
-               Foreground="{StaticResource FontColor}"
-               Visibility="Collapsed"/>
-
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <Border Background="{StaticResource DeepBackground}" CornerRadius="20" Padding="15,5" Width="300" BorderThickness="1" BorderBrush="{StaticResource BorderColor}">
+                        <TextBox x:Name="AuditSearchBox" 
+                                 Background="Transparent" 
+                                 BorderThickness="0" 
+                                 Foreground="{StaticResource FontColor}" 
+                                 VerticalAlignment="Center"
+                                 FontSize="13"
+                                 TextChanged="AuditSearchBox_TextChanged"
+                                 GotFocus="SearchBox_GotFocus"
+                                 LostFocus="SearchBox_LostFocus"
+                                 Tag="Filter by user, error, or text..."/>
+                    </Border>
+                </StackPanel>
             </Grid>
+        </Border>
 
-        </StackPanel>
-    </ScrollViewer>
+        <Border Grid.Row="1" Background="{StaticResource CardBackground}" CornerRadius="12" Margin="20,0,20,20" Padding="20">
+            <Grid>
+                <DataGrid x:Name="AuditLogGrid" 
+                          AlternatingRowBackground="{StaticResource GridAlternateRowBackground}"
+                          AutoGenerateColumns="False" 
+                          Background="Transparent" 
+                          BorderThickness="0"
+                          HeadersVisibility="Column"
+                          CanUserAddRows="False">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="TIME" Binding="{Binding LogDate, StringFormat=\{0:MM-dd HH:mm:ss\}}" Width="140"/>
+                        <DataGridTextColumn Header="PROCESS" Binding="{Binding ProcessInfo}" Width="100"/>
+                        <DataGridTemplateColumn Header="MESSAGE" Width="*">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Message}" 
+                                           TextWrapping="Wrap" 
+                                           FontFamily="Consolas" 
+                                           FontSize="12">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="{StaticResource CodeForeground}"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsCritical}" Value="True">
+                                                        <Setter Property="Foreground" Value="{StaticResource ErrorColor}"/>
+                                                        <Setter Property="FontWeight" Value="Bold"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+
+                <StackPanel x:Name="NoLogsContainer" VerticalAlignment="Center" HorizontalAlignment="Center" Visibility="Collapsed">
+                    <TextBlock Text="📁" FontSize="40" HorizontalAlignment="Center" Margin="0,0,0,10" Opacity="0.5"/>
+                    <TextBlock Text="NO RECENT SECURITY EVENTS" Foreground="{StaticResource MutedFontColor}" FontSize="16" FontWeight="Bold" HorizontalAlignment="Center"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
 </UserControl>

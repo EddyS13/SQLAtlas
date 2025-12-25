@@ -8,8 +8,10 @@ namespace SQLAtlas.Models
 {
     public class WaitStat
     {
-        public string WaitType { get; set; } = string.Empty;
-        public long WaitTimeSeconds { get; set; }
-        public long WaitingTasksCount { get; set; }
+        public string WaitType { get; set; } = "";
+        public double WaitTimeS { get; set; }
+        public double Percentage { get; set; }
+        public double AvgWaitMs { get; set; }
+        public string Description { get; set; } = "";
     }
 }

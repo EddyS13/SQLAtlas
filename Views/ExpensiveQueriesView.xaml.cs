@@ -1,59 +1,72 @@
-﻿using SQLAtlas.Services;
+﻿using SQLAtlas.Models;
+using SQLAtlas.Services;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 namespace SQLAtlas.Views
 {
-    /// <summary>
-    /// Interaction logic for ExpensiveQueriesView.xaml
-    /// </summary>
     public partial class ExpensiveQueriesView : UserControl
     {
         private readonly MetadataService _metadataService = new MetadataService();
 
-        // Parameterless constructor for direct navigation (Tools Menu)
         public ExpensiveQueriesView()
         {
             InitializeComponent();
             this.Loaded += ExpensiveQueriesView_Loaded;
         }
+
         private void ExpensiveQueriesView_Loaded(object sender, RoutedEventArgs e)
         {
-            // Auto-refresh on first load (using null casts to satisfy C# NRT warnings)
-            RefreshPerformanceButton_Click((object?)null, (RoutedEventArgs?)null);
+            RefreshPerformanceButton_Click(null, null);
         }
+
         private async void RefreshPerformanceButton_Click(object? sender, RoutedEventArgs? e)
         {
-            RefreshPerformanceButton.Content = "ANALYZING PERFORMANCE...";
+            RefreshPerformanceButton.Content = "ANALYZING CACHE...";
             RefreshPerformanceButton.IsEnabled = false;
 
             try
             {
                 var expensiveQueries = await Task.Run(() => _metadataService.GetTopExpensiveQueries());
-                ExpensiveQueriesDataGrid.ItemsSource = expensiveQueries;
 
-                RefreshPerformanceButton.Content = $"Performance Data Refreshed ({DateTime.Now:T})";
+                Dispatcher.Invoke(() => {
+                    ExpensiveQueriesDataGrid.ItemsSource = expensiveQueries;
+                    NoDataText.Visibility = (expensiveQueries == null || expensiveQueries.Count == 0) ? Visibility.Visible : Visibility.Collapsed;
+                    RefreshPerformanceButton.Content = "REFRESH ANALYSIS";
+                });
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to retrieve performance data: {ex.Message}", "Performance Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                RefreshPerformanceButton.Content = "Refresh Failed";
+                MessageBox.Show($"Failed to retrieve expensive queries: {ex.Message}");
+                RefreshPerformanceButton.Content = "RETRY";
             }
             finally
             {
                 RefreshPerformanceButton.IsEnabled = true;
+            }
+        }
+
+        private async void CopyQuery_Click(object sender, RoutedEventArgs e)
+        {
+            var button = (Button)sender;
+            var row = button.DataContext as ExpensiveQuery;
+
+            if (row != null && !string.IsNullOrEmpty(row.QueryText))
+            {
+                Clipboard.SetText(row.QueryText);
+
+                // Visual Feedback
+                button.Content = "OK!";
+                button.Foreground = (SolidColorBrush)Application.Current.Resources["SuccessColor"];
+
+                await Task.Delay(1500);
+
+                button.Content = "COPY";
+                button.Foreground = (SolidColorBrush)Application.Current.Resources["MutedFontColor"];
             }
         }
     }

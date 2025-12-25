@@ -4,23 +4,113 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              mc:Ignorable="d" 
-             d:DesignHeight="600" d:DesignWidth="800">
+             d:DesignHeight="800" d:DesignWidth="1100">
 
-    <DockPanel Margin="10">
-        <TextBlock DockPanel.Dock="Top" Margin="0,0,0,10" FontWeight="ExtraBold" FontSize="16"
-                   Foreground="{StaticResource AccentColor}"
-                   Text="SQL Agent Job Scheduling/Monitor"/>
+    <Grid Background="{StaticResource DeepBackground}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
 
-        <Button Content="Refresh Job Status" 
-                DockPanel.Dock="Top" 
-                Margin="0,0,0,10"
-                Padding="5"
-                x:Name="RefreshJobsButton" 
-                Click="RefreshJobsButton_Click"/>
+        <Border Grid.Row="0" Background="{StaticResource CardBackground}" CornerRadius="12" Margin="20,20,20,10" Padding="25">
+            <Grid>
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="⚙️" Foreground="{StaticResource AccentColor}" FontSize="22" Margin="0,0,15,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="SQL AGENT JOB MONITOR" FontSize="24" FontWeight="Bold" Foreground="{StaticResource FontColor}"/>
+                    </StackPanel>
+                    <TextBlock Text="TRACKING AUTOMATED TASKS, SCHEDULES, AND LAST RUN OUTCOMES" Foreground="{StaticResource MutedFontColor}" Margin="37,5,0,0" FontSize="13" FontWeight="SemiBold" Opacity="0.7"/>
+                </StackPanel>
 
-        <DataGrid x:Name="JobsDataGrid" 
-                  HeadersVisibility="Column" 
-                  AutoGenerateColumns="True"
-                  CanUserAddRows="False"/>
-    </DockPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <Border Background="{StaticResource DeepBackground}" CornerRadius="20" Padding="15,5" Width="250" BorderThickness="1" BorderBrush="{StaticResource BorderColor}" Margin="0,0,15,0">
+                        <TextBox x:Name="JobSearchBox" 
+                                 Background="Transparent" BorderThickness="0" Foreground="{StaticResource FontColor}" 
+                                 VerticalAlignment="Center" FontSize="13" TextChanged="JobSearchBox_TextChanged"
+                                 GotFocus="SearchBox_GotFocus" LostFocus="SearchBox_LostFocus"
+                                 Tag="Search jobs..."/>
+                    </Border>
+
+                    <Button x:Name="RefreshJobsButton" Padding="20,10" Click="RefreshJobsButton_Click"
+                            Background="{StaticResource BorderColor}" Foreground="{StaticResource FontColor}" 
+                            FontWeight="SemiBold" BorderThickness="0" Cursor="Hand">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="6"/>
+                            </Style>
+                        </Button.Resources>
+                        <TextBlock Text="REFRESH STATUS"/>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="1" Background="{StaticResource CardBackground}" CornerRadius="12" Margin="20,0,20,20" Padding="20">
+            <Grid>
+                <DataGrid x:Name="JobsDataGrid" 
+                          AlternatingRowBackground="{StaticResource GridAlternateRowBackground}"
+                          AutoGenerateColumns="False" Background="Transparent" BorderThickness="0"
+                          CanUserAddRows="False">
+
+                    <DataGrid.RowStyle>
+                        <Style TargetType="DataGridRow">
+                            <Setter Property="Opacity" Value="{Binding RowOpacity}"/>
+                        </Style>
+                    </DataGrid.RowStyle>
+
+                    <DataGrid.Resources>
+                        <StaticResource x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}" ResourceKey="AccentColor"/>
+                        <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightTextBrushKey}" Color="White"/>
+                    </DataGrid.Resources>
+
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="JOB NAME" Binding="{Binding JobName}" Width="2*"/>
+
+                        <DataGridTemplateColumn Header="ENABLED" Width="80">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock x:Name="EnabledTxt" Text="{Binding IsEnabledDisplay}" 
+                                          HorizontalAlignment="Center" FontWeight="Bold"/>
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding IsEnabled}" Value="True">
+                                            <Setter TargetName="EnabledTxt" Property="Foreground" Value="{StaticResource AccentColor}"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding IsEnabled}" Value="False">
+                                            <Setter TargetName="EnabledTxt" Property="Foreground" Value="{StaticResource MutedFontColor}"/>
+                                            <Setter TargetName="EnabledTxt" Property="Opacity" Value="0.6"/>
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <DataGridTemplateColumn Header="LAST OUTCOME" Width="130">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Border x:Name="OutcomePill" CornerRadius="10" Padding="8,2" HorizontalAlignment="Left" Background="#444444">
+                                        <TextBlock x:Name="OutcomeTxt" Text="{Binding LastRunOutcome}" FontSize="10" FontWeight="Bold" Foreground="White"/>
+                                    </Border>
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding LastRunOutcome}" Value="SUCCEEDED">
+                                            <Setter TargetName="OutcomePill" Property="Background" Value="#22C55E"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding LastRunOutcome}" Value="FAILED">
+                                            <Setter TargetName="OutcomePill" Property="Background" Value="#EF4444"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding LastRunOutcome}" Value="RETRY">
+                                            <Setter TargetName="OutcomePill" Property="Background" Value="#F59E0B"/>
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <DataGridTextColumn Header="LAST RUN DATE" Binding="{Binding LastRunDate, StringFormat=\{0:yyyy-MM-dd HH:mm\}}" Width="150"/>
+                        <DataGridTextColumn Header="NEXT RUN DATE" Binding="{Binding NextRunDate, StringFormat=\{0:yyyy-MM-dd HH:mm\}}" Width="150"/>
+                        <DataGridTextColumn Header="DURATION" Binding="{Binding LastRunDuration}" Width="100"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Grid>
+        </Border>
+    </Grid>
 </UserControl>

@@ -1,5 +1,6 @@
 ﻿// Views/MissingIndexView.xaml.cs
 
+using SQLAtlas.Models;
 using SQLAtlas.Services;
 using SQLAtlas.Utilities;
 using System;
@@ -9,6 +10,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 
 namespace SQLAtlas.Views
 {
@@ -109,6 +111,76 @@ namespace SQLAtlas.Views
                     }
                     e.Handled = true;
                 }
+            }
+        }
+
+        private void ViewScriptButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.DataContext is MissingIndex index)
+            {
+                // Create a custom styled popup window
+                Window scriptWindow = new Window
+                {
+                    Title = "Index Recovery Script",
+                    Width = 600,
+                    Height = 400,
+                    WindowStartupLocation = WindowStartupLocation.CenterScreen,
+                    Background = (Brush)FindResource("DeepBackground"),
+                    WindowStyle = WindowStyle.ToolWindow
+                };
+
+                Grid grid = new Grid { Margin = new Thickness(20) };
+                grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+                grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+                TextBlock header = new TextBlock
+                {
+                    Text = "T-SQL GENERATED SCRIPT",
+                    Foreground = (Brush)FindResource("AccentColor"),
+                    FontWeight = FontWeights.Bold,
+                    Margin = new Thickness(0, 0, 0, 10)
+                };
+
+                TextBox scriptBox = new TextBox
+                {
+                    Text = index.CreateScript,
+                    IsReadOnly = true,
+                    TextWrapping = TextWrapping.Wrap,
+                    FontFamily = new FontFamily("Consolas"),
+                    Background = (Brush)FindResource("CardBackground"),
+                    Foreground = (Brush)FindResource("CodeForeground"),
+                    Padding = new Thickness(10),
+                    VerticalScrollBarVisibility = ScrollBarVisibility.Auto
+                };
+
+                Button copyBtn = new Button
+                {
+                    Content = "COPY SCRIPT TO CLIPBOARD",
+                    Margin = new Thickness(0, 15, 0, 0),
+                    Padding = new Thickness(0, 10, 0, 10),
+                    Background = (Brush)FindResource("AccentColor"),
+                    Foreground = Brushes.White,
+                    FontWeight = FontWeights.Bold
+                };
+
+                // Copy Logic
+                copyBtn.Click += (s, ev) => {
+                    Clipboard.SetText(scriptBox.Text);
+                    copyBtn.Content = "✓ COPIED TO CLIPBOARD!";
+                    copyBtn.Background = (Brush)FindResource("SuccessColor");
+                    copyBtn.FontWeight = FontWeights.Bold;
+                };
+
+                grid.Children.Add(header);
+                grid.Children.Add(scriptBox);
+                grid.Children.Add(copyBtn);
+                Grid.SetRow(header, 0);
+                Grid.SetRow(scriptBox, 1);
+                Grid.SetRow(copyBtn, 2);
+
+                scriptWindow.Content = grid;
+                scriptWindow.ShowDialog();
             }
         }
     }

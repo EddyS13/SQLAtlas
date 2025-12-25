@@ -92,5 +92,6 @@ namespace SQLAtlas.Views
                 TwoTableSelectionHint.Text = "Select a table to view its full dependency map or select two tables for FK comparison.";
             }
         }
+
     }
 }

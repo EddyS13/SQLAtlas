@@ -1,59 +1,77 @@
-﻿using SQLAtlas.Services;
+﻿using SQLAtlas.Models;
+using SQLAtlas.Services;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 namespace SQLAtlas.Views
 {
-    /// <summary>
-    /// Interaction logic for ActiveQueriesView.xaml
-    /// </summary>
     public partial class ActiveQueriesView : UserControl
     {
         private readonly MetadataService _metadataService = new MetadataService();
 
-        // Parameterless constructor for direct navigation (Tools Menu)
         public ActiveQueriesView()
         {
             InitializeComponent();
             this.Loaded += ActiveQueriesView_Loaded;
         }
+
         private void ActiveQueriesView_Loaded(object sender, RoutedEventArgs e)
         {
-            // Auto-refresh on first load (using null casts to satisfy C# NRT warnings)
-            RefreshPerformanceButton_Click((object?)null, (RoutedEventArgs?)null);
+            RefreshPerformanceButton_Click(null, null);
         }
+
         private async void RefreshPerformanceButton_Click(object? sender, RoutedEventArgs? e)
         {
-            RefreshPerformanceButton.Content = "ANALYZING PERFORMANCE...";
+            RefreshPerformanceButton.Content = "ANALYZING...";
             RefreshPerformanceButton.IsEnabled = false;
 
             try
             {
                 var queryList = await Task.Run(() => _metadataService.GetLongRunningQueries());
-                ActiveQueriesDataGrid.ItemsSource = queryList;
 
-                RefreshPerformanceButton.Content = $"Performance Data Refreshed ({DateTime.Now:T})";
+                Dispatcher.Invoke(() => {
+                    ActiveQueriesDataGrid.ItemsSource = queryList;
+                    NoQueriesText.Visibility = (queryList == null || queryList.Count == 0) ? Visibility.Visible : Visibility.Collapsed;
+                    RefreshPerformanceButton.Content = "REFRESH";
+                });
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to retrieve performance data: {ex.Message}", "Performance Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                RefreshPerformanceButton.Content = "Refresh Failed";
+                System.Diagnostics.Debug.WriteLine($"Performance Error: {ex.Message}");
+                RefreshPerformanceButton.Content = "RETRY";
             }
             finally
             {
                 RefreshPerformanceButton.IsEnabled = true;
+            }
+        }
+
+        private async void KillSession_Click(object sender, RoutedEventArgs e)
+        {
+            // 1. Identify the session to kill
+            var button = (Button)sender;
+            // Assuming your model for the grid rows is 'ActiveQuery' or similar
+            dynamic row = button.DataContext;
+            int spid = row.SessionId;
+
+            var result = MessageBox.Show($"Are you sure you want to kill Session ID {spid}?",
+                                        "Terminate Process", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+
+            if (result == MessageBoxResult.Yes)
+            {
+                try
+                {
+                    await Task.Run(() => _metadataService.KillSession(spid));
+                    RefreshPerformanceButton_Click(null, null); // Refresh after kill
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Failed to kill session: {ex.Message}");
+                }
             }
         }
     }

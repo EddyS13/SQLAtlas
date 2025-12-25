@@ -97,5 +97,22 @@ namespace SQLAtlas.Views
                 timer.Start();
             }
         }
+
+        private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            string filter = SearchBox.Text.ToLower();
+            if (_snippetCollectionView != null)
+            {
+                _snippetCollectionView.Filter = obj =>
+                {
+                    if (obj is SqlSnippet snippet)
+                    {
+                        return snippet.Title.ToLower().Contains(filter) ||
+                               snippet.Category.ToLower().Contains(filter);
+                    }
+                    return false;
+                };
+            }
+        }
     }
 }

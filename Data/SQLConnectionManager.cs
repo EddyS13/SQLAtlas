@@ -9,72 +9,12 @@ namespace SQLAtlas.Data
     public static class SqlConnectionManager
     {
         private static string? _connectionString;
-        const int CommandTimeoutSeconds = 300;
+        private const int CommandTimeoutSeconds = 300;
 
-        /// <summary>
-        /// Clears the stored connection string, allowing the user to connect to a new database.
-        /// </summary>
-        public static void Disconnect()
-        {
-            // Clear the stored connection string
-            _connectionString = null;
+        public static string? GetLastConnectionString() => _connectionString;
+        public static string? GetCurrentConnectionString() => _connectionString;
+        public static string? CurrentDatabaseName { get; private set; }
 
-            // CRITICAL FIX: Clear the connection pool to reset any bad session context
-            SqlConnection.ClearAllPools();
-        }
-
-        /// <summary>
-        /// Executes a simple command that does not return data (e.g., DDL like ALTER INDEX).
-        /// </summary>
-        public static void ExecuteNonQuery(string sqlQuery)
-        {
-            if (string.IsNullOrEmpty(_connectionString))
-            {
-                throw new InvalidOperationException("Cannot execute query: Database connection is not established.");
-            }
-
-            using (var connection = new SqlConnection(_connectionString))
-            {
-                connection.Open();
-                using (var command = new SqlCommand(sqlQuery, connection))
-                {
-                    command.ExecuteNonQuery();
-                }
-            }
-        }
-
-        /// <summary>
-        /// Executes a query and returns the single value in the first column of the first row (e.g., OBJECT_ID, COUNT).
-        /// </summary>
-        public static object? ExecuteScalar(string sqlQuery, Dictionary<string, object> idParameters)
-        {
-            if (string.IsNullOrEmpty(_connectionString))
-            {
-                return null; // Connection not established
-            }
-
-            try
-            {
-                using (var connection = new SqlConnection(_connectionString))
-                {
-                    connection.Open();
-                    using (var command = new SqlCommand(sqlQuery, connection))
-                    {
-                        // Returns object or DBNull.Value (which is correctly handled as nullable object?)
-                        return command.ExecuteScalar();
-                    }
-                }
-            }
-            catch (SqlException ex)
-            {
-                Console.WriteLine($"ExecuteScalar Failed: {ex.Message}");
-                return null;
-            }
-        }
-
-        /// <summary>
-        /// Attempts to establish and store a connection to the SQL Server database.
-        /// </summary>
         public static async Task<bool> TestConnection(string server, string database, string user, string password, bool useWindowsAuth)
         {
             try
@@ -84,18 +24,12 @@ namespace SQLAtlas.Data
                     DataSource = server,
                     InitialCatalog = database,
                     TrustServerCertificate = true,
-                    Encrypt = false
+                    Encrypt = false,
+                    ConnectTimeout = 10
                 };
 
-                if (useWindowsAuth)
-                {
-                    builder.IntegratedSecurity = true;
-                }
-                else
-                {
-                    builder.UserID = user;
-                    builder.Password = password;
-                }
+                if (useWindowsAuth) builder.IntegratedSecurity = true;
+                else { builder.UserID = user; builder.Password = password; }
 
                 using (var connection = new SqlConnection(builder.ConnectionString))
                 {
@@ -103,25 +37,89 @@ namespace SQLAtlas.Data
                 }
 
                 _connectionString = builder.ConnectionString;
+                CurrentDatabaseName = database;
                 return true;
             }
-            catch (SqlException ex)
+            catch { return false; }
+        }
+
+        public static async Task<Dictionary<string, List<SQLAtlas.Models.DatabaseObject>>> GetGroupedObjects(string connStr)
+        {
+            var grouped = new Dictionary<string, List<SQLAtlas.Models.DatabaseObject>>();
+
+            // Ensure these keys match exactly what you want the Sidebar to show
+            var categories = new Dictionary<string, string>
+                {
+                    { "U", "Tables" },
+                    { "V", "Views" },
+                    { "P", "Stored Procedures" },
+                    { "FN", "Scalar Functions" },
+                    { "TF", "Table Functions" }, // Standard Table Function
+                    { "IF", "Table Functions" }  // Inline Table Function
+                };
+
+            // Initialize the dictionary keys based on UNIQUE friendly names
+            foreach (var catName in categories.Values.Distinct())
             {
-                Console.WriteLine($"Connection Failed: {ex.Message}");
-                _connectionString = null;
-                return false;
+                if (!grouped.ContainsKey(catName)) grouped.Add(catName, new List<SQLAtlas.Models.DatabaseObject>());
+            }
+
+            using (var conn = new SqlConnection(connStr))
+            {
+                await conn.OpenAsync();
+                // Updated SQL to include 'IF' (Inline Functions)
+                string sql = "SELECT name, type, SCHEMA_NAME(schema_id) as SchemaName, SCHEMA_NAME(schema_id) + '.' + name as FullName FROM sys.objects WHERE type IN ('U', 'V', 'P', 'FN', 'TF', 'IF') AND is_ms_shipped = 0 ORDER BY name";
+
+                using (var cmd = new SqlCommand(sql, conn))
+                using (var reader = await cmd.ExecuteReaderAsync())
+                {
+                    while (await reader.ReadAsync())
+                    {
+                        string type = reader["type"].ToString()?.Trim() ?? "";
+                        if (categories.TryGetValue(type, out string? catName))
+                        {
+                            grouped[catName].Add(new SQLAtlas.Models.DatabaseObject
+                            {
+                                Name = reader["name"].ToString()!,
+                                SchemaName = reader["SchemaName"].ToString()!,
+                                FullName = reader["FullName"].ToString()!,
+                                // Assign the friendly name so the UI knows which folder to use
+                                Type = catName,
+                                TypeDescription = catName
+                            });
+                        }
+                    }
+                }
+            }
+            return grouped;
+        }
+
+        public static object? ExecuteScalar(string sqlQuery, Dictionary<string, object>? parameters = null)
+        {
+            if (string.IsNullOrEmpty(_connectionString)) return null;
+
+            using (var connection = new Microsoft.Data.SqlClient.SqlConnection(_connectionString))
+            {
+                connection.Open();
+                using (var command = new Microsoft.Data.SqlClient.SqlCommand(sqlQuery, connection))
+                {
+                    command.CommandTimeout = CommandTimeoutSeconds;
+                    if (parameters != null)
+                    {
+                        foreach (var p in parameters)
+                            command.Parameters.AddWithValue(p.Key, p.Value ?? DBNull.Value);
+                    }
+                    return command.ExecuteScalar();
+                }
             }
         }
 
-        /// <summary>
-        /// Executes a T-SQL query and returns the results as a DataTable.
-        /// </summary>
         public static DataTable ExecuteQuery(string sqlQuery, Dictionary<string, object>? parameters = null)
         {
             if (string.IsNullOrEmpty(_connectionString))
             {
-                // CRITICAL FIX: Use null-forgiving operator (!)
-                return null!;
+                // Return an empty table rather than null to prevent crashes in MetadataServices
+                return new DataTable();
             }
 
             DataTable dataTable = new DataTable();
@@ -132,6 +130,10 @@ namespace SQLAtlas.Data
                     connection.Open();
                     using (var command = new SqlCommand(sqlQuery, connection))
                     {
+                        // Set a generous timeout for complex metadata queries
+                        command.CommandTimeout = CommandTimeoutSeconds;
+
+                        // Add parameters if any (prevents SQL injection)
                         if (parameters != null)
                         {
                             foreach (var param in parameters)
@@ -139,8 +141,6 @@ namespace SQLAtlas.Data
                                 command.Parameters.AddWithValue(param.Key, param.Value ?? DBNull.Value);
                             }
                         }
-
-                        command.CommandTimeout = CommandTimeoutSeconds;
 
                         using (var adapter = new SqlDataAdapter(command))
                         {
@@ -153,19 +153,46 @@ namespace SQLAtlas.Data
             catch (SqlException ex)
             {
                 Console.WriteLine($"Query Execution Failed: {ex.Message}");
-                // CRITICAL FIX: Use null-forgiving operator (!)
-                return null!;
+                return new DataTable();
             }
         }
 
-        /// <summary>
-        /// Gets the current active connection string.
-        /// </summary>
-        public static string? GetCurrentConnectionString()
+        public static void Disconnect()
         {
-            // Return the current active connection string
-            // This should retrieve the connection string used for the current connected database
-            return _connectionString; // or however you store it
+            _connectionString = null;
+            CurrentDatabaseName = null;
+            Microsoft.Data.SqlClient.SqlConnection.ClearAllPools();
+        }
+
+        public static void ExecuteNonQuery(string sql)
+        {
+            using (SqlConnection conn = new SqlConnection(_connectionString))
+            {
+                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                {
+                    conn.Open();
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
+
+        public static DataTable ExecuteQueryOnSpecificConnection(string query, string connectionString)
+        {
+            DataTable dt = new DataTable();
+            // Using 'using' ensures the connection is closed and disposed even if an error occurs
+            using (Microsoft.Data.SqlClient.SqlConnection conn = new Microsoft.Data.SqlClient.SqlConnection(connectionString))
+            {
+                using (Microsoft.Data.SqlClient.SqlCommand cmd = new Microsoft.Data.SqlClient.SqlCommand(query, conn))
+                {
+                    cmd.CommandTimeout = 60; // Schema queries can take a moment on large DBs
+                    conn.Open();
+                    using (Microsoft.Data.SqlClient.SqlDataAdapter adapter = new Microsoft.Data.SqlClient.SqlDataAdapter(cmd))
+                    {
+                        adapter.Fill(dt);
+                    }
+                }
+            }
+            return dt;
         }
 
     }

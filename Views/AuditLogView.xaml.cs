@@ -20,12 +20,18 @@ namespace SQLAtlas.Views
     /// <summary>
     /// Interaction logic for AuditLogView.xaml
     /// </summary>
+    /// 
+
+    
+
     public partial class AuditLogView : UserControl
     {
         private readonly MetadataService _metadataService = new MetadataService();
 
         // Field to hold the selected object(s); marked nullable since the view can load without data.
         private readonly List<DatabaseObject>? _selectedObjects;
+
+        private List<AuditLogEvent> _allEvents = new List<AuditLogEvent>();
 
         /// <summary>
         /// Parameterless Constructor (Called from Tools Menu).
@@ -67,41 +73,58 @@ namespace SQLAtlas.Views
 
         private async void SecurityView_Loaded(object sender, RoutedEventArgs e)
         {
-            // Reset status of placeholders
-            NoLogsTextBlock.Visibility = Visibility.Collapsed;
-
-            // The Audit Log view is a general utility, so it always loads its data on startup
             try
             {
-                // Fetch data
-                var events = await Task.Run(() => _metadataService.GetRecentSecurityEvents());
-                bool hasEvents = events.Any();
+                _allEvents = await Task.Run(() => _metadataService.GetRecentSecurityEvents());
 
-                if (hasEvents)
-                {
-                    AuditLogGrid.ItemsSource = events;
-                    AuditLogGrid.Visibility = Visibility.Visible;
+                Dispatcher.Invoke(() => {
+                    AuditLogGrid.ItemsSource = _allEvents;
+                    bool hasEvents = _allEvents.Any();
+                    AuditLogGrid.Visibility = hasEvents ? Visibility.Visible : Visibility.Collapsed;
+                    NoLogsContainer.Visibility = hasEvents ? Visibility.Collapsed : Visibility.Visible;
 
-                    // CRITICAL FIX: Ensure headers are visible when data is present
-                    AuditLogGrid.HeadersVisibility = DataGridHeadersVisibility.Column;
-                    NoLogsTextBlock.Visibility = Visibility.Collapsed;
-                }
-                else
-                {
-                    // If empty, hide the grid contents and headers, show message
-                    AuditLogGrid.ItemsSource = null;
-                    AuditLogGrid.Visibility = Visibility.Collapsed;
-
-                    // CRITICAL FIX: Hide the column headers (the "short blue bar")
-                    AuditLogGrid.HeadersVisibility = DataGridHeadersVisibility.None;
-
-                    NoLogsTextBlock.Visibility = Visibility.Visible;
-                }
+                    AuditSearchBox.Text = AuditSearchBox.Tag.ToString();
+                    AuditSearchBox.Opacity = 0.5;
+                });
             }
             catch (Exception ex)
             {
-                // Handle error, display message
-                MessageBox.Show($"Error loading audit log data: {ex.Message}", "Security Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Error: {ex.Message}");
+            }
+        }
+
+        private void AuditSearchBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            string filter = AuditSearchBox.Text.ToLower();
+            if (filter == AuditSearchBox.Tag.ToString().ToLower() || _allEvents == null) return;
+
+            if (string.IsNullOrWhiteSpace(filter))
+            {
+                AuditLogGrid.ItemsSource = _allEvents;
+            }
+            else
+            {
+                AuditLogGrid.ItemsSource = _allEvents
+                    .Where(x => x.Message.ToLower().Contains(filter) || x.ProcessInfo.ToLower().Contains(filter))
+                    .ToList();
+            }
+        }
+
+        private void SearchBox_GotFocus(object sender, RoutedEventArgs e)
+        {
+            if (AuditSearchBox.Text == AuditSearchBox.Tag?.ToString())
+            {
+                AuditSearchBox.Text = "";
+                AuditSearchBox.Opacity = 1.0;
+            }
+        }
+
+        private void SearchBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(AuditSearchBox.Text))
+            {
+                AuditSearchBox.Text = AuditSearchBox.Tag?.ToString() ?? "";
+                AuditSearchBox.Opacity = 0.5;
             }
         }
 

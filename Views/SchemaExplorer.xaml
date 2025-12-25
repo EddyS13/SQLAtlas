@@ -1,0 +1,168 @@
+﻿<UserControl x:Class="SQLAtlas.Views.SchemaExplorer"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             mc:Ignorable="d" 
+             d:DesignHeight="800" d:DesignWidth="1100">
+
+    <Grid Background="{StaticResource DeepBackground}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <Grid.Resources>
+            <Style x:Key="EmptyStateText" TargetType="TextBlock">
+                <Setter Property="Foreground" Value="{StaticResource MutedFontColor}"/>
+                <Setter Property="FontSize" Value="14"/>
+                <Setter Property="FontStyle" Value="Italic"/>
+                <Setter Property="HorizontalAlignment" Value="Center"/>
+                <Setter Property="VerticalAlignment" Value="Center"/>
+                <Setter Property="Margin" Value="0,40"/>
+                <Setter Property="Visibility" Value="Collapsed"/>
+            </Style>
+
+            <Style TargetType="TabItem">
+                <Setter Property="FontSize" Value="14"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="TabItem">
+                            <Border x:Name="Border" Margin="0,0,20,10" Padding="15,10" Background="Transparent" BorderThickness="0,0,0,3">
+                                <ContentPresenter ContentSource="Header" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter TargetName="Border" Property="BorderBrush" Value="{StaticResource AccentColor}"/>
+                                    <Setter Property="Foreground" Value="{StaticResource AccentColor}"/>
+                                </Trigger>
+                                <Trigger Property="IsSelected" Value="False">
+                                    <Setter Property="Foreground" Value="{StaticResource MutedFontColor}"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+        </Grid.Resources>
+
+        <Border Grid.Row="0" Background="{StaticResource CardBackground}" CornerRadius="12" Margin="20,20,20,10" Padding="25">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock x:Name="ObjectIconHeader" Text="📋" Foreground="{StaticResource AccentColor}" FontSize="22" Margin="0,0,15,0" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="ObjectContextHeader" FontSize="26" FontWeight="Bold" Foreground="{StaticResource FontColor}" Text="OBJECT NAME"/>
+                </StackPanel>
+                <TextBlock x:Name="ObjectSubHeader" Text="Loading metadata..." Foreground="{StaticResource MutedFontColor}" Margin="37,5,0,0" FontSize="14"/>
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="1" Background="{StaticResource CardBackground}" CornerRadius="12" Margin="20,0,20,20" Padding="20">
+            <TabControl Background="Transparent" BorderThickness="0">
+
+                <TabItem x:Name="DefinitionTab" Header="DEFINITION">
+                    <Grid Margin="0,15,0,0">
+                        <DataGrid x:Name="ColumnDetailsGrid" AutoGenerateColumns="False">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="NAME" Binding="{Binding ColumnName}" Width="2*"/>
+                                <DataGridTemplateColumn Header="TYPE" Width="*">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Border Background="{StaticResource DeepBackground}" BorderBrush="{StaticResource BorderColor}" BorderThickness="1" CornerRadius="4" Padding="8,3" HorizontalAlignment="Left">
+                                                <TextBlock Text="{Binding DataType}" Foreground="{StaticResource AccentColor}" FontSize="12" FontWeight="Bold"/>
+                                            </Border>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTextColumn Header="NULL" Binding="{Binding IsNullable}" Width="0.5*"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Grid>
+                </TabItem>
+
+                <TabItem x:Name="KeysTab" Header="KEYS &amp; INDEXES">
+                    <Grid>
+                        <ScrollViewer x:Name="KeysScroll" VerticalScrollBarVisibility="Auto">
+                            <StackPanel Margin="0,15,0,0">
+                                <TextBlock Text="PRIMARY &amp; UNIQUE KEYS" Foreground="{StaticResource AccentColor}" FontSize="13" FontWeight="Bold" Margin="0,0,0,10"/>
+                                <DataGrid x:Name="PrimaryKeyGrid" MaxHeight="250" Margin="0,0,0,30" AutoGenerateColumns="True"/>
+
+                                <TextBlock Text="INDEX DEFINITIONS" Foreground="{StaticResource AccentColor}" FontSize="13" FontWeight="Bold" Margin="0,0,0,10"/>
+                                <DataGrid x:Name="IndexDetailGrid" MaxHeight="400" AutoGenerateColumns="False">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="NAME" Binding="{Binding IndexName}" Width="2*"/>
+                                        <DataGridTextColumn Header="TYPE" Binding="{Binding IndexType}" Width="*"/>
+                                        <DataGridTextColumn Header="COLUMNS" Binding="{Binding KeyColumns}" Width="2*"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </StackPanel>
+                        </ScrollViewer>
+                        <TextBlock x:Name="NoKeysText" Text="No keys or indexes found for this object." Style="{StaticResource EmptyStateText}"/>
+                    </Grid>
+                </TabItem>
+
+                <TabItem x:Name="RelationshipsTab" Header="RELATIONSHIPS">
+                    <Grid>
+                        <ScrollViewer x:Name="RelationshipsScroll" VerticalScrollBarVisibility="Auto">
+                            <StackPanel Margin="0,15,0,0">
+                                <TextBlock Text="FOREIGN KEYS" Foreground="{StaticResource AccentColor}" FontSize="13" FontWeight="Bold" Margin="0,0,0,10"/>
+                                <DataGrid x:Name="ForeignKeyGrid" MaxHeight="250" Margin="0,0,0,30" AutoGenerateColumns="True"/>
+
+                                <TextBlock Text="USAGE DEPENDENCIES" Foreground="{StaticResource AccentColor}" FontSize="13" FontWeight="Bold" Margin="0,0,0,10"/>
+                                <DataGrid x:Name="TableUsageGrid" AutoGenerateColumns="True"/>
+                            </StackPanel>
+                        </ScrollViewer>
+                        <TextBlock x:Name="NoRelationshipsText" Text="No foreign keys or dependencies found." Style="{StaticResource EmptyStateText}"/>
+                    </Grid>
+                </TabItem>
+
+                <TabItem x:Name="PermissionsTab" Header="PERMISSIONS">
+                    <Grid>
+                        <DataGrid x:Name="PermissionsDataGrid" Margin="0,15,0,0" AutoGenerateColumns="False">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="PRINCIPAL" Binding="{Binding PrincipalName}" Width="*"/>
+                                <DataGridTextColumn Header="PERMISSION" Binding="{Binding PermissionType}" Width="*"/>
+                                <DataGridTemplateColumn Header="STATE" Width="120">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Border x:Name="StatePill" CornerRadius="10" Padding="10,2" HorizontalAlignment="Left" Margin="0">
+                                                <TextBlock Text="{Binding PermissionState}" FontWeight="Bold" FontSize="12" Foreground="White"/>
+                                            </Border>
+                                            <DataTemplate.Triggers>
+                                                <DataTrigger Binding="{Binding PermissionState}" Value="GRANT">
+                                                    <Setter TargetName="StatePill" Property="Background" Value="{StaticResource SuccessColor}"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding PermissionState}" Value="DENY">
+                                                    <Setter TargetName="StatePill" Property="Background" Value="{StaticResource ErrorColor}"/>
+                                                </DataTrigger>
+                                            </DataTemplate.Triggers>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                        <TextBlock x:Name="NoPermissionsText" Text="No object-level permissions defined." Style="{StaticResource EmptyStateText}"/>
+                    </Grid>
+                </TabItem>
+
+                <TabItem x:Name="ComparisonTab" Header="COMPARISON" Visibility="Collapsed">
+                    <Grid Margin="0,15,0,0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock x:Name="TwoTableSelectionTitle" Text="FOREIGN KEY MAPPING" Foreground="{StaticResource AccentColor}" FontWeight="Bold" Margin="0,0,0,10"/>
+                        <DataGrid Grid.Row="1" x:Name="TwoTableForeignKeyGrid" AutoGenerateColumns="False">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="CONSTRAINT" Binding="{Binding ConstraintName}" Width="1.5*"/>
+                                <DataGridTextColumn Header="PARENT TABLE" Binding="{Binding ParentTable}" Width="*"/>
+                                <DataGridTextColumn Header="COLUMN" Binding="{Binding ParentColumn}" Width="*"/>
+                                <DataGridTextColumn Header="REFERENCED TABLE" Binding="{Binding ReferencedTable}" Width="*"/>
+                                <DataGridTextColumn Header="REF COLUMN" Binding="{Binding ReferencedColumn}" Width="*"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Grid>
+                </TabItem>
+            </TabControl>
+        </Border>
+    </Grid>
+</UserControl>

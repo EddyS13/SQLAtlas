@@ -29,9 +29,13 @@ namespace SQLAtlas.Views
 
         private void AuthType_Changed(object? sender, RoutedEventArgs? e)
         {
-            CredentialPanel.Visibility = (WindowsAuthCheckBox.IsChecked == true)
-                ? Visibility.Collapsed
-                : Visibility.Visible;
+            var visibility = (WindowsAuthCheckBox.IsChecked == true) ? Visibility.Collapsed : Visibility.Visible;
+
+            // Toggle all 4 elements
+            UserLabel.Visibility = visibility;  // The new label
+            UserPanel.Visibility = visibility;
+            PassLabel.Visibility = visibility;
+            PassPanel.Visibility = visibility;
         }
 
         private async void CompareButton_Click(object sender, RoutedEventArgs e)
@@ -57,14 +61,14 @@ namespace SQLAtlas.Views
             string targetConnectionString;
             if (WindowsAuthCheckBox.IsChecked == true)
             {
-                // FIX: Add TrustServerCertificate and Encrypt options
-                targetConnectionString = $"Server={targetServer};Database={targetDb};Integrated Security=True;Connection Timeout=300;TrustServerCertificate=True;Encrypt=False;";
+                // Windows Authentication (Integrated Security)
+                targetConnectionString = $"Server={targetServer};Database={targetDb};Integrated Security=True;TrustServerCertificate=True;Encrypt=False;";
             }
             else
             {
+                // SQL Server Authentication
                 string password = TargetPasswordBox.Password;
-                // FIX: Add TrustServerCertificate and Encrypt options
-                targetConnectionString = $"Server={targetServer};Database={targetDb};User Id={TargetUserTextBox.Text};Password={password};Connection Timeout=300;TrustServerCertificate=True;Encrypt=False;";
+                targetConnectionString = $"Server={targetServer};Database={targetDb};User Id={TargetUserTextBox.Text};Password={password};TrustServerCertificate=True;Encrypt=False;";
             }
 
             CompareButton.Content = "Comparing Schemas...";
@@ -215,5 +219,21 @@ namespace SQLAtlas.Views
 
             return differences;
         }
+
+        private void CopyScript_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.DataContext is SchemaDifference diff)
+            {
+                if (!string.IsNullOrEmpty(diff.SynchronizationScript))
+                {
+                    Clipboard.SetText(diff.SynchronizationScript);
+                    // Optional: Temporary button text change
+                    string original = btn.Content.ToString();
+                    btn.Content = "Copied!";
+                    Task.Delay(1000).ContinueWith(_ => Dispatcher.Invoke(() => btn.Content = original));
+                }
+            }
+        }
+
     }
 }

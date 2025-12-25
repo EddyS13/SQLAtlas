@@ -3,66 +3,77 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-             xmlns:local="clr-namespace:SQLAtlas.Views"
              mc:Ignorable="d" 
-             d:DesignHeight="450" d:DesignWidth="800">
-    <DockPanel Margin="10">
-        <TextBlock DockPanel.Dock="Top" Margin="0,0,0,10" FontWeight="ExtraBold" FontSize="16"
-                   Foreground="{StaticResource AccentColor}"
-                   Text="Query Execution Plan Visualizer"/>
+             d:DesignHeight="800" d:DesignWidth="1100">
 
-        <TextBlock DockPanel.Dock="Top" Text="1. Enter Query to Analyze" FontWeight="Bold" Margin="0,5,0,5"/>
-        <Grid DockPanel.Dock="Top">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
+    <Grid Background="{StaticResource DeepBackground}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="1.5*"/>
+        </Grid.RowDefinitions>
 
-            <TextBox x:Name="QueryInputTextBox" 
-                     Grid.Column="0" 
-                     Height="120" 
-                     TextWrapping="Wrap" 
-                     AcceptsReturn="True"
-                     FontFamily="Consolas" 
-                     FontSize="12"
-                     Text="SELECT TOP 10 * FROM sys.objects;"/>
+        <Border Grid.Row="0" Background="{StaticResource CardBackground}" CornerRadius="12" Margin="20,20,20,10" Padding="20">
+            <Grid>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="⚡" FontSize="22" Margin="0,0,15,0" VerticalAlignment="Center"/>
+                    <StackPanel>
+                        <TextBlock Text="QUERY PLAN VISUALIZER" FontSize="24" FontWeight="Bold" Foreground="{StaticResource FontColor}"/>
+                        <TextBlock Text="ESTIMATED EXECUTION PLAN (XML)" Foreground="{StaticResource MutedFontColor}" FontSize="12" FontWeight="SemiBold" Opacity="0.7"/>
+                    </StackPanel>
+                </StackPanel>
 
-            <Button Content="⚡ Get Plan" 
-                    Grid.Column="1" 
-                    x:Name="GetPlanButton" 
-                    Click="GetPlanButton_Click"
-                    VerticalAlignment="Top"
-                    Margin="10,0,0,0"
-                    Padding="10"/>
-        </Grid>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <Button x:Name="GetPlanButton" Content="GENERATE PLAN" Click="GetPlanButton_Click" 
+                            Style="{StaticResource ActionButtonStyle}" Background="{StaticResource AccentColor}" 
+                            Foreground="White" Padding="20,10" FontWeight="Bold"/>
+                </StackPanel>
+            </Grid>
+        </Border>
 
-        <Grid DockPanel.Dock="Top" Margin="0,20,0,5">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
+        <Border Grid.Row="1" Background="{StaticResource CardBackground}" CornerRadius="12" Margin="20,0,20,5" Padding="15">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" Text="T-SQL QUERY" Foreground="{StaticResource AccentColor}" FontWeight="Bold" Margin="0,0,0,10"/>
+                <Border Background="{StaticResource DeepBackground}" CornerRadius="8" Padding="10">
+                    <TextBox x:Name="QueryInputTextBox" AcceptsReturn="True" TextWrapping="Wrap" 
+                             Background="Transparent" Foreground="White" BorderThickness="0" 
+                             FontFamily="Consolas" FontSize="13" VerticalScrollBarVisibility="Auto"
+                             Text="SELECT TOP 10 * FROM sys.objects;"/>
+                </Border>
+            </DockPanel>
+        </Border>
 
-            <TextBlock Grid.Column="0" FontWeight="Bold" Foreground="{StaticResource AccentColor}"
-               Text="2. Execution Plan XML (Raw Output)"/>
+        <GridSplitter Grid.Row="2" Height="8" HorizontalAlignment="Stretch" Background="Transparent" VerticalAlignment="Center"/>
 
-            <Button Grid.Column="1" 
-            x:Name="CopyPlanButton" 
-            Content="📋 Copy XML" 
-            Click="CopyPlanButton_Click"
-            HorizontalAlignment="Right"
-            Width="120"
-            Padding="5"/>
-        </Grid>
+        <Border Grid.Row="3" Background="{StaticResource CardBackground}" CornerRadius="12" Margin="20,5,20,20" Padding="15">
+            <DockPanel>
+                <Grid DockPanel.Dock="Top" Margin="0,0,0,10">
+                    <TextBlock Text="EXECUTION PLAN OUTPUT" Foreground="{StaticResource AccentColor}" FontWeight="Bold" VerticalAlignment="Center"/>
+                    <Button x:Name="CopyPlanButton" Content="COPY XML" Click="CopyPlanButton_Click" 
+                    HorizontalAlignment="Right" Style="{StaticResource ActionButtonStyle}" Padding="15,5"/>
+                </Grid>
 
-        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
-            <TextBox x:Name="PlanOutputTextBox" 
-                     IsReadOnly="True" 
-                     TextWrapping="NoWrap" 
-                     FontFamily="Consolas" 
-                     FontSize="11" 
-                     Background="{StaticResource WindowBackground}"
-                     BorderBrush="{StaticResource BorderColor}"
-                     BorderThickness="1"/>
-        </ScrollViewer>
-    </DockPanel>
+                <Border DockPanel.Dock="Top" Background="{StaticResource BorderColor}" Opacity="0.8" CornerRadius="6" Padding="12,8" Margin="0,0,0,10">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="💡" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                        <TextBlock Foreground="White" FontSize="11" VerticalAlignment="Center" TextWrapping="Wrap">
+                    <Run FontWeight="Bold">PRO-TIP:</Run> 
+                    <Run Text="Save this XML as a "/>
+                    <Run Text=".sqlplan" FontWeight="Bold" Foreground="{StaticResource AccentColor}"/>
+                    <Run Text=" file and open it in SSMS to view the full graphical diagram."/>
+                        </TextBlock>
+                    </StackPanel>
+                </Border>
+
+                <Border Background="{StaticResource DeepBackground}" CornerRadius="8" Padding="10">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+                        <TextBox x:Name="PlanOutputTextBox" IsReadOnly="True" Background="Transparent" 
+                         Foreground="#9CDCFE" BorderThickness="0" FontFamily="Consolas" 
+                         FontSize="12" TextWrapping="NoWrap" AcceptsReturn="True"/>
+                    </ScrollViewer>
+                </Border>
+            </DockPanel>
+        </Border>
+    </Grid>
 </UserControl>

@@ -1,107 +1,84 @@
-﻿using System.Windows.Controls;
-using SQLAtlas.Models;
+﻿using SQLAtlas.Models;
 using SQLAtlas.Services;
-using System.Windows;
-using System.Threading.Tasks;
+using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
 
 namespace SQLAtlas.Views
 {
     public partial class CodeView : UserControl
     {
         private readonly MetadataService _metadataService = new MetadataService();
+        private readonly DatabaseObject _target;
 
-        // Field to hold the selected object; marked nullable for safety.
-        private readonly DatabaseObject? _selectedObject;
-
-        // --- CONSTRUCTORS ---
-
-        /// <summary>
-        /// Parameterless Constructor (For routing safety).
-        /// </summary>
-        public CodeView() : this((DatabaseObject?)null) { }
-
-        /// <summary>
-        /// Constructor for single-object selection (Proc/Func).
-        /// Accepts a single nullable object.
-        /// </summary>
-        public CodeView(DatabaseObject? selectedObject)
+        public CodeView(DatabaseObject target)
         {
             InitializeComponent();
-
-            // Safely assign the object
-            _selectedObject = selectedObject;
-
+            _target = target;
             this.Loaded += CodeView_Loaded;
         }
 
-        // --- LOAD HANDLER ---
-
         private async void CodeView_Loaded(object sender, RoutedEventArgs e)
         {
-            // Set all grids to Visible/Hidden state based on data
+            ObjectIconHeader.Text = _target.Type == "P" ? "⚡" : "ƒ";
+            ObjectContextHeader.Text = _target.Name.ToUpper();
+            ObjectSubHeader.Text = $"SCHEMA: {_target.SchemaName} | TYPE: {_target.TypeDescription.ToUpper()}";
 
-            if (_selectedObject is not null)
+            try
             {
-                string schemaName = _selectedObject.SchemaName;
-                string objectName = _selectedObject.Name;
+                // Retrieve procedure details
+                var details = await Task.Run(() => _metadataService.GetObjectDetails(_target.SchemaName, _target.Name));
 
-                // 1. Load Details (Definition, Dates, Parameters)
-                var details = await Task.Run(() => _metadataService.GetObjectDetails(schemaName, objectName));
+                CodeDefinitionTextBox.Text = details.Definition;
+                CreateDateTextBlock.Text = details.CreateDate == DateTime.MinValue ? "N/A" : details.CreateDate.ToString("yyyy-MM-dd HH:mm");
+                ModifyDateTextBlock.Text = details.ModifyDate == DateTime.MinValue ? "N/A" : details.ModifyDate.ToString("yyyy-MM-dd HH:mm");
 
-                // 2. Load Dependencies
-                var dependencies = await Task.Run(() => _metadataService.GetObjectDependencies(schemaName, objectName));
+                // Populate Tabs
+                BindDataWithEmptyCheck(ParameterGrid, NoParametersTextBlock, details.Parameters);
 
-                // 3. Load Permissions (Integrated Security Check)
-                var permissions = await Task.Run(() => _metadataService.GetObjectPermissions(objectName));
+                var deps = await Task.Run(() => _metadataService.GetObjectDependencies(_target.SchemaName, _target.Name));
+                BindDataWithEmptyCheck(DependencyGrid, NoDependenciesTextBlock, deps);
 
+                var perms = await Task.Run(() => _metadataService.GetObjectPermissions(_target.Name));
+                BindDataWithEmptyCheck(PermissionsDataGrid, NoPermissionsTextBlock, perms);
+            }
+            catch (Exception ex)
+            {
+                CodeDefinitionTextBox.Text = $"-- Error loading metadata: {ex.Message}";
+            }
+        }
 
-                // --- Code Block and Dates (Always displayed if object is selected) ---
-                if (details.Definition.Contains("ENCRYPTED"))
-                {
-                    CodeDefinitionTextBox.Text = $"-- WARNING: Object is ENCRYPTED. Definition is not stored in plain text.\n\n"
-                                               + $"-- Last Modified: {details.ModifyDate}\n";
-                }
-                else
-                {
-                    CodeDefinitionTextBox.Text = details.Definition;
-                }
-
-                CreateDateTextBlock.Text = details.CreateDate.ToString();
-                ModifyDateTextBlock.Text = details.ModifyDate.ToString();
-
-
-                // --- Parameter Logic ---
-                bool hasParameters = details.Parameters.Any();
-                ParameterGrid.ItemsSource = details.Parameters;
-                NoParametersTextBlock.Visibility = hasParameters ? Visibility.Collapsed : Visibility.Visible;
-                ParameterGrid.Visibility = hasParameters ? Visibility.Visible : Visibility.Collapsed;
-
-                // --- Dependency Logic ---
-                bool hasDependencies = dependencies.Any();
-                DependencyGrid.ItemsSource = dependencies;
-                NoDependenciesTextBlock.Visibility = hasDependencies ? Visibility.Collapsed : Visibility.Visible;
-                DependencyGrid.Visibility = hasDependencies ? Visibility.Visible : Visibility.Collapsed;
-
-                // --- Permissions Logic ---
-                bool hasPermissions = permissions.Any();
-                PermissionsDataGrid.ItemsSource = permissions;
-                NoPermissionsTextBlock.Visibility = hasPermissions ? Visibility.Collapsed : Visibility.Visible;
-                PermissionsDataGrid.Visibility = hasPermissions ? Visibility.Visible : Visibility.Collapsed;
+        private void BindDataWithEmptyCheck<T>(DataGrid grid, TextBlock emptyLabel, List<T> data)
+        {
+            if (data == null || data.Count == 0)
+            {
+                grid.Visibility = Visibility.Collapsed;
+                emptyLabel.Visibility = Visibility.Visible;
             }
             else
             {
-                // Default state if loaded without selection (e.g., failed routing)
-                CodeDefinitionTextBox.Text = "Select a Stored Procedure or Function from the object list to view its code and dependencies.";
+                grid.ItemsSource = data;
+                grid.Visibility = Visibility.Visible;
+                emptyLabel.Visibility = Visibility.Collapsed;
+            }
+        }
 
-                // Hide grids and show messages
-                NoParametersTextBlock.Visibility = Visibility.Visible;
-                ParameterGrid.Visibility = Visibility.Collapsed;
-                NoDependenciesTextBlock.Visibility = Visibility.Visible;
-                DependencyGrid.Visibility = Visibility.Collapsed;
-                NoPermissionsTextBlock.Visibility = Visibility.Visible;
-                PermissionsDataGrid.Visibility = Visibility.Collapsed;
+        private async void CopyCodeButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (!string.IsNullOrEmpty(CodeDefinitionTextBox.Text))
+            {
+                Clipboard.SetText(CodeDefinitionTextBox.Text);
+                var btn = (Button)sender;
+                btn.Content = "COPIED!";
+                btn.Foreground = (SolidColorBrush)Application.Current.Resources["AccentColor"];
+
+                await Task.Delay(2000);
+
+                btn.Content = "COPY";
+                btn.Foreground = (SolidColorBrush)Application.Current.Resources["MutedFontColor"];
             }
         }
     }

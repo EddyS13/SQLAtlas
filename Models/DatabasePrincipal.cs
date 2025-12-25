@@ -8,8 +8,10 @@ namespace SQLAtlas.Models
 {
     public class DatabasePrincipal
     {
-        public string Name { get; set; } = string.Empty;
-        public string Type { get; set; } = string.Empty; // SQL_USER, WINDOWS_GROUP, etc.
-        public string RoleMembership { get; set; } = string.Empty; // e.g., db_datareader, db_owner
+        public string Name { get; set; } = "";
+        public string TypeDescription { get; set; } = "";
+        public DateTime CreateDate { get; set; }
+        public string DefaultSchema { get; set; } = "";
+        public string AuthenticationType { get; set; } = "";
     }
 }

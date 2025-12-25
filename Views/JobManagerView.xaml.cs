@@ -1,4 +1,6 @@
-﻿using System;
+﻿using SQLAtlas.Models;
+using SQLAtlas.Services;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -12,13 +14,14 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
-using SQLAtlas.Services;
 
 namespace SQLAtlas.Views
 {
     public partial class JobManagerView : UserControl
     {
         private readonly MetadataService _metadataService = new MetadataService();
+
+        private List<SqlAgentJob> _allJobs = new List<SqlAgentJob>();
 
         public JobManagerView()
         {
@@ -40,19 +43,61 @@ namespace SQLAtlas.Views
 
             try
             {
-                var jobs = await Task.Run(() => _metadataService.GetSqlAgentJobs());
-                JobsDataGrid.ItemsSource = jobs;
+                _allJobs = await Task.Run(() => _metadataService.GetSqlAgentJobs());
 
-                RefreshJobsButton.Content = $"Job Status Refreshed ({DateTime.Now:T})";
+                Dispatcher.Invoke(() => {
+                    JobsDataGrid.ItemsSource = _allJobs;
+                    RefreshJobsButton.Content = "REFRESH STATUS";
+
+                    // Set search placeholder
+                    JobSearchBox.Text = JobSearchBox.Tag.ToString();
+                    JobSearchBox.Opacity = 0.5;
+                });
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to retrieve job status: {ex.Message}", "Agent Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Failed: {ex.Message}");
                 RefreshJobsButton.Content = "Refresh Failed";
             }
-            finally
+            finally { RefreshJobsButton.IsEnabled = true; }
+        }
+
+        private void JobSearchBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            string filter = JobSearchBox.Text.ToLower();
+            string placeholder = JobSearchBox.Tag?.ToString().ToLower() ?? "";
+
+            if (filter == placeholder || _allJobs == null) return;
+
+            if (string.IsNullOrWhiteSpace(filter))
             {
-                RefreshJobsButton.IsEnabled = true;
+                JobsDataGrid.ItemsSource = _allJobs;
+            }
+            else
+            {
+                // Filtering the SqlAgentJob list
+                JobsDataGrid.ItemsSource = _allJobs
+                    .Where(j => j.JobName.ToLower().Contains(filter))
+                    .ToList();
+            }
+        }
+
+        // Logic for Searchbox Placeholder
+        private void SearchBox_GotFocus(object sender, RoutedEventArgs e)
+        {
+            if (JobSearchBox.Text == JobSearchBox.Tag?.ToString())
+            {
+                JobSearchBox.Text = "";
+                JobSearchBox.Opacity = 1.0;
+            }
+        }
+
+        private void SearchBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(JobSearchBox.Text))
+            {
+                JobSearchBox.Text = JobSearchBox.Tag?.ToString() ?? "";
+                JobSearchBox.Opacity = 0.5;
             }
         }
     }

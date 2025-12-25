@@ -36,23 +36,44 @@ namespace SQLAtlas.Views
 
         private async void RefreshServerInfoButton_Click(object? sender, RoutedEventArgs? e)
         {
-            RefreshServerInfoButton.Content = "FETCHING INFO...";
+            RefreshServerInfoButton.Content = "FETCHING...";
             RefreshServerInfoButton.IsEnabled = false;
 
             try
             {
+                // Use your existing service method
                 var details = await Task.Run(() => _metadataService.GetServerInformation());
-                ServerInfoDataGrid.ItemsSource = details;
 
-                RefreshServerInfoButton.Content = $"Info Refreshed ({DateTime.Now:T})";
+                if (details != null)
+                {
+                    ServerHeaderInfo.Text = details.ServerName;
+                    VersionTxt.Text = details.Version;
+                    EditionTxt.Text = details.Edition;
+                    LevelTxt.Text = $"Patch Level: {details.Level}";
+                    CpuTxt.Text = details.CpuCount.ToString();
+                    RamTxt.Text = $"{details.PhysicalRamGB} GB";
+                    UptimeTxt.Text = details.UptimeDisplay;
+
+                    // Simple Advisor logic
+                    if (details.PhysicalRamGB < 8)
+                    {
+                        AdvisorTitle.Text = "⚠️ Resource Constraint";
+                        AdvisorDesc.Text = "Server RAM is below 8GB. SQL Server may struggle with buffer pool cache management.";
+                    }
+                    else
+                    {
+                        AdvisorTitle.Text = "✅ Configuration Healthy";
+                        AdvisorDesc.Text = "Hardware specs meet enterprise standards. Proceed to Configuration Editor for tuning.";
+                    }
+                }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to retrieve server information: {ex.Message}", "System Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                RefreshServerInfoButton.Content = "Refresh Server Info";
+                MessageBox.Show($"Error: {ex.Message}");
             }
             finally
             {
+                RefreshServerInfoButton.Content = "REFRESH INFO";
                 RefreshServerInfoButton.IsEnabled = true;
             }
         }

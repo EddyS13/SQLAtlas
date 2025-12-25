@@ -3,42 +3,115 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-             xmlns:local="clr-namespace:SQLAtlas.Views"
              mc:Ignorable="d" 
-             d:DesignHeight="450" d:DesignWidth="800">
-    <Grid>
+             d:DesignHeight="800" d:DesignWidth="1100">
 
-        <DockPanel Margin="10">
+    <Grid Background="{StaticResource DeepBackground}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
 
-            <Button Content="Refresh Performance Data" 
-                DockPanel.Dock="Top" 
-                Margin="0,0,0,10" 
-                Padding="5"
-                x:Name="RefreshPerformanceButton" 
-                Click="RefreshPerformanceButton_Click"/>
-
-            <TextBlock DockPanel.Dock="Top" 
-                Margin="0,0,0,10" 
-                FontWeight="ExtraBold"
-                FontSize="14"
-                Foreground="{StaticResource AccentColor}"
-                Text="Current Blocking Chain (Real-Time)"/>
-
-            <ScrollViewer VerticalScrollBarVisibility="Auto">
-
+        <Border Grid.Row="0" Background="{StaticResource CardBackground}" CornerRadius="12" Margin="20,20,20,10" Padding="25">
+            <Grid>
                 <StackPanel>
-
-                    <DataGrid x:Name="BlockingChainDataGrid" 
-                        HeadersVisibility="Column"
-                        CanUserAddRows="False"
-                        Height="Auto"
-                        Margin="0,0,0,20"/>
-
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="🚫" Foreground="{StaticResource ErrorColor}" FontSize="22" Margin="0,0,15,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="BLOCKING MONITOR" FontSize="24" FontWeight="Bold" Foreground="{StaticResource FontColor}"/>
+                    </StackPanel>
+                    <TextBlock Text="REAL-TIME LOCK CONTENTION AND TRANSACTION CHAINS" Foreground="{StaticResource MutedFontColor}" Margin="37,5,0,0" FontSize="13" FontWeight="SemiBold" Opacity="0.7"/>
                 </StackPanel>
 
-            </ScrollViewer>
+                <Button x:Name="RefreshPerformanceButton" 
+                        HorizontalAlignment="Right" VerticalAlignment="Center"
+                        Padding="20,10" Click="RefreshPerformanceButton_Click"
+                        Background="{StaticResource BorderColor}" Foreground="{StaticResource FontColor}" 
+                        FontWeight="SemiBold" BorderThickness="0" Cursor="Hand">
+                    <Button.Resources>
+                        <Style TargetType="Border">
+                            <Setter Property="CornerRadius" Value="6"/>
+                        </Style>
+                    </Button.Resources>
+                    <TextBlock Text="REFRESH MONITOR"/>
+                </Button>
+            </Grid>
+        </Border>
 
-        </DockPanel>
+        <Border Grid.Row="1" Background="{StaticResource CardBackground}" CornerRadius="12" Margin="20,0,20,20" Padding="20">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
 
+                <TextBlock Grid.Row="0" Text="BLOCKING HIERARCHY" Foreground="{StaticResource AccentColor}" FontSize="11" FontWeight="Bold" Margin="0,0,0,15" Opacity="0.8"/>
+
+                <DataGrid x:Name="BlockingChainDataGrid" Grid.Row="1"
+                          AlternatingRowBackground="{StaticResource GridAlternateRowBackground}"
+                          AutoGenerateColumns="False" 
+                          Background="Transparent" 
+                          BorderThickness="0">
+                    <DataGrid.Columns>
+                        <DataGridTemplateColumn Header="LEVEL" Width="70">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Border x:Name="LevelPill" CornerRadius="4" Padding="4,2" Background="{StaticResource BorderColor}">
+                                        <TextBlock Text="{Binding BlockLevel}" HorizontalAlignment="Center" FontWeight="Bold" Foreground="White"/>
+                                    </Border>
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding BlockLevel}" Value="0">
+                                            <Setter TargetName="LevelPill" Property="Background" Value="{StaticResource ErrorColor}"/>
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <DataGridTextColumn Header="SPID" Binding="{Binding Spid}" Width="60"/>
+                        <DataGridTextColumn Header="BLOCKER" Binding="{Binding BlockingSpid}" Width="80"/>
+                        <DataGridTextColumn Header="WAIT (ms)" Binding="{Binding WaitTimeMs, StringFormat=\{0:N0\}}" Width="100"/>
+
+                        <DataGridTemplateColumn Header="SQL TEXT" Width="*">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding QueryText}" FontFamily="Consolas" FontSize="12" 
+                                               TextTrimming="CharacterEllipsis" Foreground="{StaticResource CodeForeground}"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <DataGridTemplateColumn Width="90">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Button Content="KILL" Click="KillSession_Click"
+                                            Background="Transparent" Foreground="{StaticResource ErrorColor}"
+                                            BorderBrush="{StaticResource ErrorColor}" BorderThickness="1"
+                                            FontSize="10" FontWeight="Bold" Padding="8,2" Cursor="Hand">
+                                        <Button.Resources>
+                                            <Style TargetType="Border">
+                                                <Setter Property="CornerRadius" Value="4"/>
+                                            </Style>
+                                        </Button.Resources>
+                                    </Button>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+
+                <StackPanel x:Name="NoBlockingContainer" Grid.Row="1" 
+                    VerticalAlignment="Center" HorizontalAlignment="Center" 
+                    Visibility="Collapsed">
+                    <TextBlock Text="✅" FontSize="40" HorizontalAlignment="Center" Margin="0,0,0,10"/>
+                    <TextBlock Text="NO BLOCKING DETECTED" 
+                        Foreground="{StaticResource SuccessColor}" 
+                        FontSize="16" FontWeight="Bold" HorizontalAlignment="Center"/>
+                    <TextBlock Text="The server is currently running smoothly." 
+                        Foreground="{StaticResource MutedFontColor}" 
+                        FontSize="13" HorizontalAlignment="Center" Margin="0,5,0,0"/>
+                </StackPanel>
+                
+            </Grid>
+        </Border>
     </Grid>
 </UserControl>

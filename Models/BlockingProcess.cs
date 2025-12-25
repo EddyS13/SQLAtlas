@@ -8,10 +8,10 @@ namespace SQLAtlas.Models
 {
     public class BlockingProcess
     {
-        public short SessionId { get; set; }
-        public short BlockingSessionId { get; set; }
-        public int WaitTimeMS { get; set; }
-        public string WaitType { get; set; } = string.Empty;
-        public string BlockedCommand { get; set; } = string.Empty;
+        public int Spid { get; set; }
+        public int BlockingSpid { get; set; }
+        public long WaitTimeMs { get; set; }
+        public int BlockLevel { get; set; }
+        public string QueryText { get; set; } = "";
     }
 }

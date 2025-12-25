@@ -8,11 +8,33 @@ namespace SQLAtlas.Models
 {
     public class IndexFragmentation
     {
-        public string SchemaTableName { get; set; } = string.Empty; // Schema.TableName
-        public string IndexName { get; set; } = string.Empty;
+        public string SchemaTableName { get; set; } = "";
+        public string IndexName { get; set; } = "";
         public double FragmentationPercent { get; set; }
         public long PageCount { get; set; }
-        public string MaintenanceAction { get; set; } = string.Empty; // REBUILD or REORGANIZE
-        public string MaintenanceScript { get; set; } = string.Empty; // The DDL command (for clickable action)
+
+        // Logic for recommendations
+        public string MaintenanceAction
+        {
+            get
+            {
+                if (PageCount < 8) return "HEALTHY";
+                if (FragmentationPercent > 30) return "REBUILD";
+                if (FragmentationPercent > 5) return "REORGANIZE";
+                return "HEALTHY";
+            }
+        }
+
+        public string MaintenanceScript
+        {
+            get
+            {
+                if (MaintenanceAction == "REBUILD")
+                    return $"ALTER INDEX [{IndexName}] ON {SchemaTableName} REBUILD WITH (ONLINE = ON);";
+                if (MaintenanceAction == "REORGANIZE")
+                    return $"ALTER INDEX [{IndexName}] ON {SchemaTableName} REORGANIZE;";
+                return "";
+            }
+        }
     }
 }
