@@ -157,6 +157,33 @@ namespace SQLAtlas.Data
             }
         }
 
+        public static DataSet ExecuteDataSet(string query)
+        {
+            DataSet ds = new DataSet();
+            using (Microsoft.Data.SqlClient.SqlConnection conn = new Microsoft.Data.SqlClient.SqlConnection(_connectionString))
+            {
+                using (Microsoft.Data.SqlClient.SqlCommand cmd = new Microsoft.Data.SqlClient.SqlCommand(query, conn))
+                {
+                    conn.Open();
+                    using (Microsoft.Data.SqlClient.SqlDataAdapter adapter = new Microsoft.Data.SqlClient.SqlDataAdapter(cmd))
+                    {
+                        adapter.Fill(ds);
+                    }
+                }
+            }
+            return ds;
+        }
+
+        public static DataTable ExecuteDataTable(string query)
+        {
+            DataSet ds = ExecuteDataSet(query);
+            if (ds != null && ds.Tables.Count > 0)
+            {
+                return ds.Tables[0];
+            }
+            return new DataTable();
+        }
+
         public static void Disconnect()
         {
             _connectionString = null;

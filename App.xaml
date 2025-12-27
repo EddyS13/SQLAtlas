@@ -6,212 +6,245 @@
 
     <Application.Resources>
 
-        <!-- ATLAS COLOR PALLETE -->
-        <SolidColorBrush x:Key="DeepBackground" Color="#0B111B"/>
-        <SolidColorBrush x:Key="CardBackground" Color="#1A1F2E"/>
-        <SolidColorBrush x:Key="BorderColor" Color="#2D3748"/>
-        <SolidColorBrush x:Key="AccentColor" Color="#00BCD4"/>
-        <SolidColorBrush x:Key="SecondaryAccent" Color="#22D3EE"/>
-        <SolidColorBrush x:Key="SuccessColor" Color="#2E7D32"/>
-        <SolidColorBrush x:Key="ErrorColor" Color="#C62828"/>
-        <SolidColorBrush x:Key="FontColor" Color="White"/>
-        <SolidColorBrush x:Key="MutedFontColor" Color="#8A9BB8"/>
-        <SolidColorBrush x:Key="CodeForeground" Color="#A2FF00"/>
-        <SolidColorBrush x:Key="GridAlternateRowBackground" Color="#161E2D"/>
+        <ResourceDictionary>
+            <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
 
-        <!-- ATLAS DATAGRID STYLE -->
-        <Style TargetType="DataGrid">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="RowBackground" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="RowHeaderWidth" Value="0"/>
-            <Setter Property="AlternatingRowBackground" Value="{StaticResource GridAlternateRowBackground}"/>
-            <Setter Property="CanUserAddRows" Value="False"/>
-            <Setter Property="Foreground" Value="{StaticResource FontColor}"/>
-            <Setter Property="IsReadOnly" Value="True"/>
-            <Setter Property="ColumnWidth" Value="*"/>
-            <Setter Property="GridLinesVisibility" Value="Horizontal"/>
-            <Setter Property="HorizontalGridLinesBrush" Value="{StaticResource BorderColor}"/>
+            <!-- ATLAS COLOR PALLETE -->
+            <SolidColorBrush x:Key="DeepBackground" Color="#0B111B"/>
+            <SolidColorBrush x:Key="CardBackground" Color="#1A1F2E"/>
+            <SolidColorBrush x:Key="BorderColor" Color="#2D3748"/>
+            <SolidColorBrush x:Key="AccentColor" Color="#00BCD4"/>
+            <SolidColorBrush x:Key="SecondaryAccent" Color="#22D3EE"/>
+            <SolidColorBrush x:Key="SuccessColor" Color="#2E7D32"/>
+            <SolidColorBrush x:Key="ErrorColor" Color="#C62828"/>
+            <SolidColorBrush x:Key="FontColor" Color="White"/>
+            <SolidColorBrush x:Key="MutedFontColor" Color="#8A9BB8"/>
+            <SolidColorBrush x:Key="CodeForeground" Color="#A2FF00"/>
+            <SolidColorBrush x:Key="GridAlternateRowBackground" Color="#161E2D"/>
 
-            <Setter Property="CellStyle">
-                <Setter.Value>
-                    <Style TargetType="DataGridCell">
-                        <Setter Property="Padding" Value="10,12"/>
-                        <Setter Property="BorderThickness" Value="0"/>
-                        <Setter Property="Background" Value="Transparent"/>
-                        <Setter Property="Template">
-                            <Setter.Value>
-                                <ControlTemplate TargetType="DataGridCell">
-                                    <Border Padding="{TemplateBinding Padding}" Background="{TemplateBinding Background}">
-                                        <ContentPresenter VerticalAlignment="Center" />
-                                    </Border>
-                                </ControlTemplate>
-                            </Setter.Value>
-                        </Setter>
+            <!-- ATLAS DATAGRID STYLE -->
+            <Style TargetType="DataGrid">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="RowBackground" Value="Transparent"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="RowHeaderWidth" Value="0"/>
+                <Setter Property="AlternatingRowBackground" Value="{StaticResource GridAlternateRowBackground}"/>
+                <Setter Property="CanUserAddRows" Value="False"/>
+                <Setter Property="Foreground" Value="{StaticResource FontColor}"/>
+                <Setter Property="IsReadOnly" Value="True"/>
+                <Setter Property="ColumnWidth" Value="*"/>
+                <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+                <Setter Property="HorizontalGridLinesBrush" Value="{StaticResource BorderColor}"/>
+
+                <Setter Property="CellStyle">
+                    <Setter.Value>
+                        <Style TargetType="DataGridCell">
+                            <Setter Property="Padding" Value="10,12"/>
+                            <Setter Property="BorderThickness" Value="0"/>
+                            <Setter Property="Background" Value="Transparent"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="DataGridCell">
+                                        <Border Padding="{TemplateBinding Padding}" Background="{TemplateBinding Background}">
+                                            <ContentPresenter VerticalAlignment="Center" />
+                                        </Border>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </Setter.Value>
+                </Setter>
+
+                <Setter Property="ColumnHeaderStyle">
+                    <Setter.Value>
+                        <Style TargetType="DataGridColumnHeader">
+                            <Setter Property="Background" Value="Transparent"/>
+                            <Setter Property="Foreground" Value="{StaticResource MutedFontColor}"/>
+                            <Setter Property="FontWeight" Value="Bold"/>
+                            <Setter Property="Padding" Value="10,8"/>
+                            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+                            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                            <Setter Property="BorderBrush" Value="{StaticResource BorderColor}"/>
+                        </Style>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style x:Key="ActionButtonStyle" TargetType="Button">
+                <Setter Property="Background" Value="{StaticResource BorderColor}"/>
+                <Setter Property="Foreground" Value="{StaticResource FontColor}"/>
+                <Setter Property="Padding" Value="10,4"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+                <Setter Property="FontSize" Value="10"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Style.Resources>
+                    <Style TargetType="Border">
+                        <Setter Property="CornerRadius" Value="4"/>
                     </Style>
-                </Setter.Value>
-            </Setter>
+                </Style.Resources>
+                <Style.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter Property="Background" Value="{StaticResource AccentColor}"/>
+                        <Setter Property="Foreground" Value="White"/>
+                    </Trigger>
+                    <Trigger Property="IsEnabled" Value="False">
+                        <Setter Property="Opacity" Value="0.3"/>
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
 
-            <Setter Property="ColumnHeaderStyle">
-                <Setter.Value>
-                    <Style TargetType="DataGridColumnHeader">
-                        <Setter Property="Background" Value="Transparent"/>
-                        <Setter Property="Foreground" Value="{StaticResource MutedFontColor}"/>
-                        <Setter Property="FontWeight" Value="Bold"/>
-                        <Setter Property="Padding" Value="10,8"/>
-                        <Setter Property="HorizontalContentAlignment" Value="Left"/>
-                        <Setter Property="BorderThickness" Value="0,0,0,1"/>
-                        <Setter Property="BorderBrush" Value="{StaticResource BorderColor}"/>
-                    </Style>
-                </Setter.Value>
-            </Setter>
-        </Style>
+            <Style TargetType="ToolTip">
+                <Setter Property="Background" Value="{StaticResource CardBackground}" />
+                <Setter Property="BorderBrush" Value="{StaticResource AccentColor}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="Foreground" Value="White" />
+                <Setter Property="Padding" Value="10" />
+                <Setter Property="ToolTipService.InitialShowDelay" Value="200" />
+                <Setter Property="ToolTipService.BetweenShowDelay" Value="0" />
+                <Setter Property="ToolTipService.ShowDuration" Value="60000" />
+            </Style>
 
-        <Style x:Key="ActionButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="{StaticResource BorderColor}"/>
-            <Setter Property="Foreground" Value="{StaticResource FontColor}"/>
-            <Setter Property="Padding" Value="10,4"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="FontSize" Value="10"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Style.Resources>
-                <Style TargetType="Border">
-                    <Setter Property="CornerRadius" Value="4"/>
-                </Style>
-            </Style.Resources>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="{StaticResource AccentColor}"/>
-                    <Setter Property="Foreground" Value="White"/>
-                </Trigger>
-                <Trigger Property="IsEnabled" Value="False">
-                    <Setter Property="Opacity" Value="0.3"/>
-                </Trigger>
-            </Style.Triggers>
-        </Style>
+            <Style TargetType="TextBox">
+                <Setter Property="Background" Value="{StaticResource DeepBackground}"/>
+                <Setter Property="Foreground" Value="White"/>
+                <Setter Property="BorderBrush" Value="{StaticResource BorderColor}"/>
+                <Setter Property="CaretBrush" Value="{StaticResource AccentColor}"/>
+                <Setter Property="Padding" Value="5"/>
+                <Style.Resources>
+                    <SolidColorBrush x:Key="{x:Static SystemColors.WindowBrushKey}" Color="#1e1e1e" />
+                </Style.Resources>
+            </Style>
 
-        <Style TargetType="ToolTip">
-            <Setter Property="Background" Value="{StaticResource CardBackground}" />
-            <Setter Property="BorderBrush" Value="{StaticResource AccentColor}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Foreground" Value="White" />
-            <Setter Property="Padding" Value="10" />
-            <Setter Property="ToolTipService.InitialShowDelay" Value="200" />
-            <Setter Property="ToolTipService.BetweenShowDelay" Value="0" />
-            <Setter Property="ToolTipService.ShowDuration" Value="60000" />
-        </Style>
+            <Style TargetType="PasswordBox">
+                <Setter Property="Background" Value="{StaticResource DeepBackground}"/>
+                <Setter Property="Foreground" Value="White"/>
+                <Setter Property="BorderBrush" Value="{StaticResource BorderColor}"/>
+                <Style.Resources>
+                    <SolidColorBrush x:Key="{x:Static SystemColors.WindowBrushKey}" Color="#1e1e1e" />
+                </Style.Resources>
+            </Style>
 
-        <Style TargetType="TextBox">
-            <Setter Property="Background" Value="{StaticResource DeepBackground}"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="BorderBrush" Value="{StaticResource BorderColor}"/>
-            <Setter Property="CaretBrush" Value="{StaticResource AccentColor}"/>
-            <Setter Property="Padding" Value="5"/>
-            <Style.Resources>
-                <SolidColorBrush x:Key="{x:Static SystemColors.WindowBrushKey}" Color="#1e1e1e" />
-            </Style.Resources>
-        </Style>
-
-        <Style TargetType="PasswordBox">
-            <Setter Property="Background" Value="{StaticResource DeepBackground}"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="BorderBrush" Value="{StaticResource BorderColor}"/>
-            <Style.Resources>
-                <SolidColorBrush x:Key="{x:Static SystemColors.WindowBrushKey}" Color="#1e1e1e" />
-            </Style.Resources>
-        </Style>
-
-        <!-- END OF ATLAS STYLING -->
-
-        <SolidColorBrush x:Key="NavyBlue" Color="#0D47A1"/>
-        <!--<SolidColorBrush x:Key="AccentColor" Color="#00BCD4"/>-->
-        <!--<SolidColorBrush x:Key="SecondaryAccent" Color="#8BC34A"/>-->
-        <!--<SolidColorBrush x:Key="DeepBackground" Color="#0A0F1A"/>-->
-        <!--<SolidColorBrush x:Key="CardBackground" Color="#1A1F2E"/>-->
-        <!--<SolidColorBrush x:Key="FontColor" Color="#E0E0E0"/>-->
-
-        <SolidColorBrush x:Key="SuccessGreen" Color="#A2FF00"/>
-
-        <SolidColorBrush x:Key="WindowBackground" Color="#0D47A1"/>
-        <SolidColorBrush x:Key="PaneBackground" Color="#1565C0"/>
-        <!--<SolidColorBrush x:Key="BorderColor" Color="#2962FF"/>-->
-        <SolidColorBrush x:Key="HighlightColor" Color="#1E88E5"/>
-
-        <SolidColorBrush x:Key="BackgroundColor" Color="#0B111B"/>
-        <SolidColorBrush x:Key="SurfaceColor" Color="#111827"/>
+            <Style x:Key="EmptyButtonStyle" TargetType="Button">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="Padding" Value="0"/>
+                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                <Setter Property="VerticalContentAlignment" Value="Stretch"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="{TemplateBinding Background}" 
+                        BorderBrush="{TemplateBinding BorderBrush}" 
+                        BorderThickness="{TemplateBinding BorderThickness}">
+                                <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" 
+                                      VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                            </Border>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+                <Style.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter Property="Opacity" Value="0.8"/>
+                    </Trigger>
+                    <Trigger Property="IsPressed" Value="True">
+                        <Setter Property="Opacity" Value="0.6"/>
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
 
 
-        <!--<SolidColorBrush x:Key="MutedFontColor" Color="#9CA3AF"/>-->
+            <!-- END OF ATLAS STYLING -->
 
-        <DropShadowEffect x:Key="DropShadowEffect" BlurRadius="15" Direction="-90" RenderingBias="Quality" ShadowDepth="2" Opacity="0.2"/>
+            <SolidColorBrush x:Key="NavyBlue" Color="#0D47A1"/>
+            <!--<SolidColorBrush x:Key="AccentColor" Color="#00BCD4"/>-->
+            <!--<SolidColorBrush x:Key="SecondaryAccent" Color="#8BC34A"/>-->
+            <!--<SolidColorBrush x:Key="DeepBackground" Color="#0A0F1A"/>-->
+            <!--<SolidColorBrush x:Key="CardBackground" Color="#1A1F2E"/>-->
+            <!--<SolidColorBrush x:Key="FontColor" Color="#E0E0E0"/>-->
 
-        <Style x:Key="ModernDataGridStyle" TargetType="DataGrid">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="RowBackground" Value="Transparent"/>
-            <Setter Property="AlternatingRowBackground" Value="#161E2D"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="GridLinesVisibility" Value="None"/>
-            <Setter Property="FontSize" Value="13"/>
-        </Style>
+            <SolidColorBrush x:Key="SuccessGreen" Color="#A2FF00"/>
 
-        <Style x:Key="DashboardCard" TargetType="Border">
-            <Setter Property="Background" Value="{StaticResource CardBackground}"/>
-            <Setter Property="CornerRadius" Value="8"/>
-            <Setter Property="Padding" Value="15"/>
-            <Setter Property="Margin" Value="10"/>
-            <Setter Property="Effect" Value="{StaticResource DropShadowEffect}"/>
-        </Style>
+            <SolidColorBrush x:Key="WindowBackground" Color="#0D47A1"/>
+            <SolidColorBrush x:Key="PaneBackground" Color="#1565C0"/>
+            <!--<SolidColorBrush x:Key="BorderColor" Color="#2962FF"/>-->
+            <SolidColorBrush x:Key="HighlightColor" Color="#1E88E5"/>
 
-        <Style TargetType="{x:Type Window}">
-            <Setter Property="Background" Value="{StaticResource WindowBackground}"/>
-        </Style>
+            <SolidColorBrush x:Key="BackgroundColor" Color="#0B111B"/>
+            <SolidColorBrush x:Key="SurfaceColor" Color="#111827"/>
 
-        <Style TargetType="{x:Type TextBlock}">
-            <Setter Property="Foreground" Value="{StaticResource FontColor}"/>
-            <Setter Property="FontSize" Value="13"/>
-        </Style>
 
-        <Style TargetType="{x:Type Button}">
-            <Setter Property="Background" Value="{StaticResource AccentColor}"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="Padding" Value="10,5"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="Yellow"/>
-                    <Setter Property="Foreground" Value="Black"/>
-                </Trigger>
-                <Trigger Property="IsEnabled" Value="False">
-                    <Setter Property="Foreground" Value="{StaticResource FontColor}"/>
-                    <Setter Property="Background" Value="#00356C"/>
-                </Trigger>
-            </Style.Triggers>
-        </Style>
+            <!--<SolidColorBrush x:Key="MutedFontColor" Color="#9CA3AF"/>-->
 
-        <Style x:Key="SystemButtonStyle" TargetType="{x:Type Button}">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Foreground" Value="{StaticResource FontColor}"/>
-            <Setter Property="FontSize" Value="14"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="{StaticResource BorderColor}"/>
-                </Trigger>
-                <MultiDataTrigger>
-                    <MultiDataTrigger.Conditions>
-                        <Condition Binding="{Binding Content, RelativeSource={RelativeSource Self}}" Value="✕"/>
-                        <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource Self}}" Value="True"/>
-                    </MultiDataTrigger.Conditions>
-                    <Setter Property="Background" Value="#E81123"/>
-                    <Setter Property="Foreground" Value="White"/>
-                </MultiDataTrigger>
-            </Style.Triggers>
-        </Style>
+            <DropShadowEffect x:Key="DropShadowEffect" BlurRadius="15" Direction="-90" RenderingBias="Quality" ShadowDepth="2" Opacity="0.2"/>
+
+            <Style x:Key="ModernDataGridStyle" TargetType="DataGrid">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="RowBackground" Value="Transparent"/>
+                <Setter Property="AlternatingRowBackground" Value="#161E2D"/>
+                <Setter Property="Foreground" Value="White"/>
+                <Setter Property="GridLinesVisibility" Value="None"/>
+                <Setter Property="FontSize" Value="13"/>
+            </Style>
+
+            <Style x:Key="DashboardCard" TargetType="Border">
+                <Setter Property="Background" Value="{StaticResource CardBackground}"/>
+                <Setter Property="CornerRadius" Value="8"/>
+                <Setter Property="Padding" Value="15"/>
+                <Setter Property="Margin" Value="10"/>
+                <Setter Property="Effect" Value="{StaticResource DropShadowEffect}"/>
+            </Style>
+
+            <Style TargetType="{x:Type Window}">
+                <Setter Property="Background" Value="{StaticResource WindowBackground}"/>
+            </Style>
+
+            <Style TargetType="{x:Type TextBlock}">
+                <Setter Property="Foreground" Value="{StaticResource FontColor}"/>
+                <Setter Property="FontSize" Value="13"/>
+            </Style>
+
+            <Style TargetType="{x:Type Button}">
+                <Setter Property="Background" Value="{StaticResource AccentColor}"/>
+                <Setter Property="Foreground" Value="White"/>
+                <Setter Property="Padding" Value="10,5"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+                <Style.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter Property="Background" Value="Yellow"/>
+                        <Setter Property="Foreground" Value="Black"/>
+                    </Trigger>
+                    <Trigger Property="IsEnabled" Value="False">
+                        <Setter Property="Foreground" Value="{StaticResource FontColor}"/>
+                        <Setter Property="Background" Value="#00356C"/>
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+
+            <Style x:Key="SystemButtonStyle" TargetType="{x:Type Button}">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="Foreground" Value="{StaticResource FontColor}"/>
+                <Setter Property="FontSize" Value="14"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Style.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter Property="Background" Value="{StaticResource BorderColor}"/>
+                    </Trigger>
+                    <MultiDataTrigger>
+                        <MultiDataTrigger.Conditions>
+                            <Condition Binding="{Binding Content, RelativeSource={RelativeSource Self}}" Value="✕"/>
+                            <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource Self}}" Value="True"/>
+                        </MultiDataTrigger.Conditions>
+                        <Setter Property="Background" Value="#E81123"/>
+                        <Setter Property="Foreground" Value="White"/>
+                    </MultiDataTrigger>
+                </Style.Triggers>
+            </Style>
+        </ResourceDictionary>
     </Application.Resources>
 </Application>

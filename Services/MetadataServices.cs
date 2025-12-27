@@ -1059,38 +1059,56 @@ namespace SQLAtlas.Services
             return list;
         }
 
-        public ServerInfoDetail GetServerInformation()
+        public ServerInfoDetail? GetServerInformation() // Added '?' to fix CS8603 Warning
         {
+            // 1. Updated SQL Query to include Collation, OS Version, and Hypervisor
             string sql = @"
-        SELECT 
-            @@SERVERNAME AS ServerName,
-            @@VERSION AS FullVersion,
-            SERVERPROPERTY('Edition') AS Edition,
-            SERVERPROPERTY('ProductLevel') AS ProductLevel,
-            cpu_count AS CpuCount,
-            (physical_memory_kb / 1024 / 1024) AS PhysicalRamGB,
-            sqlserver_start_time AS StartTime
-        FROM sys.dm_os_sys_info";
+                SELECT 
+                    CAST(SERVERPROPERTY('MachineName') AS NVARCHAR(128)) AS ServerName,
+                    CAST(@@VERSION AS NVARCHAR(MAX)) AS FullVersion,
+                    CAST(SERVERPROPERTY('Edition') AS NVARCHAR(128)) AS Edition,
+                    CAST(SERVERPROPERTY('ProductLevel') AS NVARCHAR(128)) AS ProductLevel,
+                    CAST(SERVERPROPERTY('Collation') AS NVARCHAR(128)) AS Collation,
+                    (SELECT cpu_count FROM sys.dm_os_sys_info) AS CpuCount,
+                    (SELECT physical_memory_kb / 1024 / 1024 FROM sys.dm_os_sys_info) AS PhysicalRamGB,
+                    (SELECT sqlserver_start_time FROM sys.dm_os_sys_info) AS StartTime,
+                    (SELECT virtual_machine_type_desc FROM sys.dm_os_sys_info) AS Hypervisor,
+                    -- We removed 'windows_build_number' to prevent the Msg 207 error
+                    (SELECT 'Windows ' + windows_release FROM sys.dm_os_windows_info) AS OSVersion";
 
-            var dt = SqlConnectionManager.ExecuteQuery(sql);
-            if (dt == null || dt.Rows.Count == 0) return null;
-
-            var row = dt.Rows[0];
-
-            return new ServerInfoDetail
+            try
             {
-                ServerName = row["ServerName"].ToString() ?? "Unknown",
-                // We take the first part of the version string to keep it clean
-                Version = row["FullVersion"].ToString()?.Split('\n')[0] ?? "N/A",
-                Edition = row["Edition"].ToString() ?? "N/A",
-                Level = row["ProductLevel"].ToString() ?? "N/A",
-                CpuCount = Convert.ToInt32(row["CpuCount"]),
-                PhysicalRamGB = Convert.ToInt32(row["PhysicalRamGB"]),
+                var dt = SqlConnectionManager.ExecuteQuery(sql);
+                if (dt == null || dt.Rows.Count == 0)
+                {
+                    System.Diagnostics.Debug.WriteLine("DEBUG: SQL execution returned 0 rows.");
+                    return null;
+                }
 
-                // FIX: Assign the StartTime here. 
-                // DO NOT try to assign UptimeDisplay anymore.
-                StartTime = Convert.ToDateTime(row["StartTime"])
-            };
+                var row = dt.Rows[0];
+
+                return new ServerInfoDetail
+                {
+                    ServerName = row["ServerName"]?.ToString() ?? "Unknown",
+                    // Clean up the version string (takes the first line)
+                    Version = row["FullVersion"]?.ToString()?.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)[0] ?? "N/A",
+                    Edition = row["Edition"]?.ToString() ?? "N/A",
+                    Level = row["ProductLevel"]?.ToString() ?? "N/A",
+                    Collation = row["Collation"]?.ToString() ?? "N/A",
+                    OSVersion = row["OSVersion"]?.ToString() ?? "N/A",
+                    Hypervisor = row["Hypervisor"]?.ToString() ?? "N/A",
+
+                    // Use safe conversions
+                    CpuCount = row["CpuCount"] != DBNull.Value ? Convert.ToInt32(row["CpuCount"]) : 0,
+                    PhysicalRamGB = row["PhysicalRamGB"] != DBNull.Value ? Convert.ToDouble(row["PhysicalRamGB"]) : 0.0,
+                    StartTime = row["StartTime"] != DBNull.Value ? Convert.ToDateTime(row["StartTime"]) : DateTime.Now
+                };
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"MetadataService Error: {ex.Message}");
+                return null;
+            }
         }
 
         public List<SchemaDifference> GetBaseSchema(string connectionString)
@@ -1753,20 +1771,20 @@ namespace SQLAtlas.Services
             {
                 // T-SQL to find PRIMARY KEY and UNIQUE constraints on the given table
                 string sql = @"
-            SELECT 
-                kc.name AS ConstraintName,
-                kc.type_desc AS KeyType,
-                STUFF((
-                    SELECT ', ' + c.name 
-                    FROM sys.index_columns ic
-                    JOIN sys.columns c ON ic.object_id = c.object_id AND ic.column_id = c.column_id
-                    WHERE ic.object_id = kc.parent_object_id AND ic.index_id = kc.unique_index_id
-                    ORDER BY ic.key_ordinal
-                    FOR XML PATH('')
-                ), 1, 2, '') AS Columns
-            FROM sys.key_constraints kc
-            WHERE kc.parent_object_id = OBJECT_ID(@QualifiedName)
-              AND kc.type IN ('PK', 'UQ');"; // PK: Primary Key, UQ: Unique Constraint
+                    SELECT 
+                        kc.name AS ConstraintName,
+                        kc.type_desc AS KeyType,
+                        STUFF((
+                            SELECT ', ' + c.name 
+                            FROM sys.index_columns ic
+                            JOIN sys.columns c ON ic.object_id = c.object_id AND ic.column_id = c.column_id
+                            WHERE ic.object_id = kc.parent_object_id AND ic.index_id = kc.unique_index_id
+                            ORDER BY ic.key_ordinal
+                            FOR XML PATH('')
+                        ), 1, 2, '') AS Columns
+                    FROM sys.key_constraints kc
+                    WHERE kc.parent_object_id = OBJECT_ID(@QualifiedName)
+                      AND kc.type IN ('PK', 'UQ');"; // PK: Primary Key, UQ: Unique Constraint
 
                 var parameters = new Dictionary<string, object>
         {
@@ -1805,19 +1823,19 @@ namespace SQLAtlas.Services
             {
                 // T-SQL to find all FOREIGN KEY constraints where the given table is the PARENT (defines the FK)
                 string sql = @"
-            SELECT
-                fk.name AS ConstraintName,
-                'FOREIGN KEY' AS KeyType,
-                STUFF((
-                    SELECT ', ' + pc.name 
-                    FROM sys.foreign_key_columns fkc
-                    JOIN sys.columns pc ON fkc.parent_object_id = pc.object_id AND fkc.parent_column_id = pc.column_id
-                    WHERE fkc.constraint_object_id = fk.object_id
-                    FOR XML PATH('')
-                ), 1, 2, '') AS Columns,
-                OBJECT_NAME(fk.referenced_object_id) AS ReferencesTable
-            FROM sys.foreign_keys fk
-            WHERE fk.parent_object_id = OBJECT_ID(@QualifiedName);";
+                    SELECT
+                        fk.name AS ConstraintName,
+                        'FOREIGN KEY' AS KeyType,
+                        STUFF((
+                            SELECT ', ' + pc.name 
+                            FROM sys.foreign_key_columns fkc
+                            JOIN sys.columns pc ON fkc.parent_object_id = pc.object_id AND fkc.parent_column_id = pc.column_id
+                            WHERE fkc.constraint_object_id = fk.object_id
+                            FOR XML PATH('')
+                        ), 1, 2, '') AS Columns,
+                        OBJECT_NAME(fk.referenced_object_id) AS ReferencesTable
+                    FROM sys.foreign_keys fk
+                    WHERE fk.parent_object_id = OBJECT_ID(@QualifiedName);";
 
                 var parameters = new Dictionary<string, object>
         {
@@ -1856,24 +1874,24 @@ namespace SQLAtlas.Services
 
             // FAST Metadata-only query (No fragmentation calculation)
             string sql = @"
-        SELECT 
-            i.name AS IndexName,
-            i.type_desc AS IndexType,
-            ISNULL(STUFF((SELECT ', ' + c.name
-                   FROM sys.index_columns ic
-                   JOIN sys.columns c ON ic.object_id = c.object_id AND ic.column_id = c.column_id
-                   WHERE ic.object_id = i.object_id AND ic.index_id = i.index_id AND ic.is_included_column = 0
-                   ORDER BY ic.key_ordinal
-                   FOR XML PATH('')), 1, 2, ''), '') AS KeyColumns,
-            ISNULL(STUFF((SELECT ', ' + c.name
-                   FROM sys.index_columns ic
-                   JOIN sys.columns c ON ic.object_id = c.object_id AND ic.column_id = c.column_id
-                   WHERE ic.object_id = i.object_id AND ic.index_id = i.index_id AND ic.is_included_column = 1
-                   ORDER BY ic.key_ordinal
-                   FOR XML PATH('')), 1, 2, ''), '') AS IncludedColumns
-        FROM sys.indexes i
-        WHERE i.object_id = OBJECT_ID(@FullTableName)
-        AND i.name IS NOT NULL;";
+                SELECT 
+                    i.name AS IndexName,
+                    i.type_desc AS IndexType,
+                    ISNULL(STUFF((SELECT ', ' + c.name
+                           FROM sys.index_columns ic
+                           JOIN sys.columns c ON ic.object_id = c.object_id AND ic.column_id = c.column_id
+                           WHERE ic.object_id = i.object_id AND ic.index_id = i.index_id AND ic.is_included_column = 0
+                           ORDER BY ic.key_ordinal
+                           FOR XML PATH('')), 1, 2, ''), '') AS KeyColumns,
+                    ISNULL(STUFF((SELECT ', ' + c.name
+                           FROM sys.index_columns ic
+                           JOIN sys.columns c ON ic.object_id = c.object_id AND ic.column_id = c.column_id
+                           WHERE ic.object_id = i.object_id AND ic.index_id = i.index_id AND ic.is_included_column = 1
+                           ORDER BY ic.key_ordinal
+                           FOR XML PATH('')), 1, 2, ''), '') AS IncludedColumns
+                FROM sys.indexes i
+                WHERE i.object_id = OBJECT_ID(@FullTableName)
+                AND i.name IS NOT NULL;";
 
             try
             {
@@ -1932,6 +1950,158 @@ namespace SQLAtlas.Services
                 // This will be caught by your UI and shown in the MessageBox
                 throw new Exception($"SQL Server refused to kill session {sessionId}. It might be a system process or already terminating. Details: {ex.Message}");
             }
+        }
+
+        public DashboardStats GetDashboardStats()
+        {
+            var stats = new DashboardStats();
+            // Order: 0:Uptime, 1:CPU, 2:Blocking, 3:DBStatus, 4:FailedLogins, 5:HealthChecklist
+            string sql = @"
+                -- 0: Uptime
+                SELECT DATEDIFF(hour, sqlserver_start_time, GETDATE()) FROM sys.dm_os_sys_info;
+
+                -- 1: Accurate CPU (SQL Process Utilization)
+                -- We use the ring buffer to get the true 0-100% value
+                DECLARE @ts_now BIGINT = (SELECT ms_ticks FROM sys.dm_os_sys_info); 
+
+                SELECT TOP 1 
+                    record.value('(./Record/SchedulerMonitorEvent/SystemHealth/ProcessUtilization)[1]', 'int') AS CpuUsage
+                FROM ( 
+                    SELECT TIMESTAMP, CONVERT(XML, record) AS record 
+                    FROM sys.dm_os_ring_buffers 
+                    WHERE ring_buffer_type = N'RING_BUFFER_SCHEDULER_MONITOR' 
+                    AND record LIKE '%<SystemHealth>%'
+                ) AS x 
+                ORDER BY TIMESTAMP DESC;
+
+                -- 2: Blocking
+                SELECT COUNT(*) FROM sys.dm_exec_requests WHERE blocking_session_id <> 0;
+
+                -- 3: DB Status
+                SELECT state_desc, COUNT(*) FROM sys.databases GROUP BY state_desc;
+
+                -- 4: Failed Logins (Last 24H from Default Trace)
+                DECLARE @path NVARCHAR(260);
+                SELECT @path = path FROM sys.traces WHERE is_default = 1;
+                IF @path IS NOT NULL
+                    SELECT COUNT(*) FROM fn_trace_gettable(@path, DEFAULT) WHERE EventClass = 20 AND StartTime > DATEADD(day, -1, GETDATE());
+                ELSE
+                    SELECT 0; -- Fallback if default trace is disabled
+
+                -- 5: Health Checklist (Expanded to 5 items)
+                SELECT 'Backup' as Category, CASE WHEN EXISTS (SELECT 1 FROM msdb.dbo.backupset WHERE backup_finish_date > DATEADD(day, -1, GETDATE())) THEN 'Healthy' ELSE 'Warning' END as Status, 'Daily Backup Check' as Message
+                UNION ALL
+                SELECT 'Security', CASE WHEN (SELECT COUNT(*) FROM sys.server_principals WHERE IS_SRVROLEMEMBER('sysadmin', name) = 1) < 10 THEN 'Healthy' ELSE 'Warning' END, 'SysAdmin Account Audit'
+                UNION ALL
+                SELECT 'Performance', CASE WHEN (SELECT TOP 1 cntr_value FROM sys.dm_os_performance_counters WHERE counter_name = 'Buffer cache hit ratio' AND object_name LIKE '%Buffer Manager%') > 90 THEN 'Healthy' ELSE 'Warning' END, 'Buffer Cache Efficiency'
+                UNION ALL
+                SELECT 'Maintenance', CASE WHEN EXISTS (SELECT 1 FROM sys.dm_db_index_physical_stats(DB_ID(), NULL, NULL, NULL, 'LIMITED') WHERE avg_fragmentation_in_percent > 30) THEN 'Warning' ELSE 'Healthy' END, 'Index Fragmentation Check'
+                UNION ALL
+                SELECT 'Storage', CASE WHEN EXISTS (SELECT 1 FROM sys.master_files WHERE type = 1 AND (size * 8 / 1024) > 5000) THEN 'Warning' ELSE 'Healthy' END, 'Transaction Log Size Audit';";
+
+            try
+            {
+                DataSet ds = SqlConnectionManager.ExecuteDataSet(sql);
+                if (ds != null && ds.Tables.Count >= 6)
+                {
+                    // 0: Uptime
+                    int hours = Convert.ToInt32(ds.Tables[0].Rows[0][0]);
+                    stats.Uptime = hours >= 24 ? $"{hours / 24}d {hours % 24}h" : $"{hours}h";
+
+                    // 1: CPU
+                    stats.CpuUsage = Convert.ToInt32(ds.Tables[1].Rows[0][0]);
+
+                    // 2: Blocking
+                    stats.BlockingSessions = Convert.ToInt32(ds.Tables[2].Rows[0][0]);
+
+                    // 3: DB Status
+                    stats.OnlineDatabases = 0; stats.OfflineDatabases = 0;
+                    foreach (DataRow row in ds.Tables[3].Rows)
+                    {
+                        if (row[0].ToString().ToUpper() == "ONLINE") stats.OnlineDatabases = Convert.ToInt32(row[1]);
+                        else stats.OfflineDatabases += Convert.ToInt32(row[1]);
+                    }
+
+                    // 4: Failed Logins
+                    stats.FailedLogins = Convert.ToInt32(ds.Tables[4].Rows[0][0]);
+
+                    // 5: Health Checks
+                    stats.HealthChecks.Clear();
+                    foreach (DataRow row in ds.Tables[5].Rows)
+                    {
+                        string status = row["Status"].ToString();
+                        stats.HealthChecks.Add(new HealthCheckItem
+                        {
+                            Message = row["Message"].ToString(),
+                            Status = status,
+                            StatusColor = status == "Healthy" ? "#22C55E" : "#EF4444"
+                        });
+                    }
+                }
+            }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine("MAPPING ERROR: " + ex.Message); }
+            stats.LastUpdateDisplay = DateTime.Now.ToString("MM/dd/yyyy HH:mm:ss");
+            return stats;
+        }
+
+        public DataTable GetServerConfigurationDetails()
+        {
+            string sql = @"
+                SELECT
+                    @@SERVERNAME AS ServerName,
+                    @@VERSION AS FullVersion,
+                    SERVERPROPERTY('Edition') AS Edition,
+                    SERVERPROPERTY('ProductLevel') AS ProductLevel,
+                    SERVERPROPERTY('Collation') AS Collation,
+                    (SELECT cpu_count FROM sys.dm_os_sys_info) AS CpuCount,
+                    (SELECT physical_memory_kb / 1024 / 1024 FROM sys.dm_os_sys_info) AS PhysicalRamGB,
+                    (SELECT sqlserver_start_time FROM sys.dm_os_sys_info) AS StartTime,
+                    (SELECT virtual_machine_type_desc FROM sys.dm_os_sys_info) AS Hypervisor,
+                    --Detailed OS String Construction
+                    (SELECT 'Windows ' + windows_release + ' (Build ' + CAST(windows_build_number AS VARCHAR) + ')'
+                     FROM sys.dm_os_windows_info) AS OSVersion";
+
+            return SqlConnectionManager.ExecuteDataTable(sql);
+        }
+
+        public Dictionary<string, string> GetHubOverviewStats()
+        {
+            string sql = @"
+                -- Schema Stats
+                SELECT 'Tables' as Label, CAST(COUNT(*) AS VARCHAR) as Val FROM sys.tables
+                UNION ALL
+                SELECT 'Views', CAST(COUNT(*) AS VARCHAR) FROM sys.views
+                UNION ALL
+                SELECT 'Stored Procs', CAST(COUNT(*) AS VARCHAR) FROM sys.procedures
+                UNION ALL
+                -- Security Stats
+                SELECT 'Admins', CAST(COUNT(*) AS VARCHAR) FROM sys.server_principals 
+                WHERE IS_SRVROLEMEMBER('sysadmin', name) = 1 AND type NOT IN ('R')
+                UNION ALL
+                -- Maintenance Stats (msdb query)
+                SELECT 'LastBackup', ISNULL(CAST(MAX(backup_finish_date) AS VARCHAR), 'Never') 
+                FROM msdb.dbo.backupset WHERE type = 'D'
+                UNION ALL
+                -- HA Stats
+                SELECT 'Replicas', CAST(COUNT(*) AS VARCHAR) FROM sys.dm_hadr_availability_replica_states";
+
+            var stats = new Dictionary<string, string>();
+            try
+            {
+                DataTable dt = SqlConnectionManager.ExecuteDataTable(sql);
+                foreach (DataRow row in dt.Rows)
+                {
+                    stats.Add(row["Label"].ToString(), row["Val"].ToString());
+                }
+            }
+            catch
+            {
+                // Fallback defaults so the app doesn't crash if HA or MSDB isn't accessible
+                return new Dictionary<string, string> {
+            { "Tables", "0" }, { "Admins", "0" }, { "LastBackup", "N/A" }, { "Replicas", "0" }
+        };
+            }
+            return stats;
         }
 
     }

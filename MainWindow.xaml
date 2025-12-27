@@ -34,7 +34,19 @@
 
             <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,40">
                 <Image Source="pack://application:,,,/Images/SQLAtlasLogo.png" Width="60" Height="60" Margin="0,0,20,0" RenderOptions.BitmapScalingMode="HighQuality"/>
-                <TextBlock Text="SQL Atlas" Foreground="#22D3EE" FontSize="26" FontWeight="Bold" VerticalAlignment="Center"/>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="SQL Atlas" 
+                       Foreground="#22D3EE" 
+                       FontSize="26" 
+                       FontWeight="ExtraBold"/>
+
+                    <TextBlock Text="Database Diagnostics &amp; Optimization Suite" 
+                       Foreground="{StaticResource MutedFontColor}" 
+                       FontSize="14" 
+                       Margin="2,2,0,0" 
+                       FontWeight="SemiBold"
+                       HorizontalAlignment="Left"/>
+                </StackPanel>
             </StackPanel>
 
             <Border Grid.Row="1" Background="{StaticResource CardBackground}" CornerRadius="12" Padding="30">

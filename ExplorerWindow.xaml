@@ -13,7 +13,7 @@
 
     <Window.Resources>
         <converters:SqlTypeToFriendlyNameConverter x:Key="SqlTypeToFriendlyNameConverter"/>
-        
+
         <Style TargetType="{x:Type ListBoxItem}">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="{StaticResource FontColor}"/>
@@ -29,35 +29,6 @@
                     <Setter Property="Foreground" Value="{StaticResource AccentColor}"/>
                 </Trigger>
             </Style.Triggers>
-        </Style>
-
-        <Style x:Key="ModernTabItem" TargetType="TabItem">
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="TabItem">
-                        <Border x:Name="TabBorder" Padding="20,10" Margin="0,0,10,0" BorderThickness="0,0,0,3">
-                            <ContentPresenter x:Name="Content" ContentSource="Header" RecognizesAccessKey="True">
-                                <ContentPresenter.Resources>
-                                    <Style TargetType="TextBlock">
-                                        <Setter Property="Foreground" Value="#9CA3AF"/>
-                                        <Setter Property="FontSize" Value="12"/>
-                                        <Setter Property="FontWeight" Value="SemiBold"/>
-                                    </Style>
-                                </ContentPresenter.Resources>
-                            </ContentPresenter>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="TabBorder" Property="BorderBrush" Value="{StaticResource AccentColor}"/>
-                                <Setter Property="Foreground" Value="White"/>
-                            </Trigger>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="TabBorder" Property="Background" Value="{StaticResource BorderColor}"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
         </Style>
 
         <Style TargetType="{x:Type TabItem}">
@@ -94,56 +65,10 @@
                 </Setter.Value>
             </Setter>
         </Style>
-
-        <Style TargetType="{x:Type ScrollBar}">
-            <Setter Property="Width" Value="6"/>
-            <Setter Property="MinWidth" Value="6"/>
-            <Setter Property="MaxWidth" Value="6"/>
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="{x:Type ScrollBar}">
-                        <Grid x:Name="Bg" Background="Transparent" SnapsToDevicePixels="true">
-                            <Track x:Name="PART_Track" IsDirectionReversed="true" IsEnabled="{TemplateBinding IsEnabled}">
-                                <Track.Thumb>
-                                    <Thumb x:Name="Thumb">
-                                        <Thumb.Template>
-                                            <ControlTemplate TargetType="{x:Type Thumb}">
-                                                <Border Background="#666" CornerRadius="3" />
-                                            </ControlTemplate>
-                                        </Thumb.Template>
-                                    </Thumb>
-                                </Track.Thumb>
-                            </Track>
-                        </Grid>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-            <Style.Resources>
-                <Style TargetType="{x:Type RepeatButton}">
-                    <Setter Property="Visibility" Value="Collapsed"/>
-                </Style>
-            </Style.Resources>
-        </Style>
-
-        <Style TargetType="Expander">
-            <Setter Property="HeaderTemplate">
-                <Setter.Value>
-                    <DataTemplate>
-                        <Grid Width="240">
-                            <TextBlock Text="{Binding Converter={StaticResource SqlTypeToFriendlyNameConverter}}" 
-                                       Foreground="White" FontWeight="SemiBold" FontSize="13"/>
-                        </Grid>
-                    </DataTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
     </Window.Resources>
 
     <DockPanel>
-        <StatusBar DockPanel.Dock="Bottom" Background="{StaticResource CardBackground}" 
-           BorderThickness="0" Height="40" Padding="25,0">
+        <StatusBar DockPanel.Dock="Bottom" Background="{StaticResource CardBackground}" BorderThickness="0" Height="40" Padding="25,0">
             <StatusBar.ItemsPanel>
                 <ItemsPanelTemplate>
                     <Grid>
@@ -154,30 +79,20 @@
                     </Grid>
                 </ItemsPanelTemplate>
             </StatusBar.ItemsPanel>
-
-            <StatusBarItem Grid.Column="0" HorizontalContentAlignment="Left">
+            <StatusBarItem Grid.Column="0">
                 <StackPanel Orientation="Horizontal">
                     <TextBlock Text="DB: " Foreground="{StaticResource MutedFontColor}" FontSize="12" VerticalAlignment="Center"/>
-                    <TextBlock x:Name="CurrentDatabaseNameBlock" Text="Production_DB" 
-                       Foreground="White" FontSize="12" FontWeight="SemiBold" 
-                       VerticalAlignment="Center" Margin="0,0,15,0"/>
-
+                    <TextBlock x:Name="CurrentDatabaseNameBlock" Text="N/A" Foreground="White" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,15,0"/>
                     <TextBlock Text="on " Foreground="{StaticResource MutedFontColor}" FontSize="12" VerticalAlignment="Center"/>
-                    <TextBlock x:Name="CurrentServerNameBlock" Text="SQL-SVR-01" 
-                       Foreground="White" FontSize="12" FontWeight="SemiBold" 
-                       VerticalAlignment="Center"/>
+                    <TextBlock x:Name="CurrentServerNameBlock" Text="N/A" Foreground="White" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
                 </StackPanel>
             </StatusBarItem>
-
-            <StatusBarItem Grid.Column="1" HorizontalContentAlignment="Right">
+            <StatusBarItem Grid.Column="1">
                 <StackPanel Orientation="Horizontal">
                     <TextBlock Text="Version: " Foreground="{StaticResource MutedFontColor}" FontSize="11" VerticalAlignment="Center"/>
-                    <TextBlock x:Name="VersionNumberTextBlock" Text="v1.0.4" 
-                       Foreground="White" FontSize="11" Margin="5,0,20,0" VerticalAlignment="Center"/>
-
+                    <TextBlock x:Name="VersionNumberTextBlock" Text="v1.0.0" Foreground="White" FontSize="11" Margin="5,0,20,0" VerticalAlignment="Center"/>
                     <TextBlock Text="Build: " Foreground="{StaticResource MutedFontColor}" FontSize="11" VerticalAlignment="Center"/>
-                    <TextBlock x:Name="VersionDateTextBlock" Text="2025.12.07" 
-                       Foreground="White" FontSize="11" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="VersionDateTextBlock" Text="2025.12.27" Foreground="White" FontSize="11" VerticalAlignment="Center"/>
                 </StackPanel>
             </StatusBarItem>
         </StatusBar>
@@ -190,27 +105,15 @@
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-
                     <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                         <Image Source="pack://application:,,,/Images/SQLAtlasLogo.png" Width="60" Height="60" Margin="0,0,20,0" RenderOptions.BitmapScalingMode="HighQuality"/>
                         <StackPanel VerticalAlignment="Center">
                             <TextBlock Text="SQL Atlas" Foreground="White" FontSize="32" FontWeight="ExtraBold"/>
-                            <TextBlock Text="Database Diagnostics &amp; Optimization Suite" 
-                                   Foreground="{StaticResource MutedFontColor}" FontSize="14" Margin="2,2,0,0" FontWeight="SemiBold"/>
+                            <TextBlock Text="Database Diagnostics &amp; Optimization Suite" Foreground="{StaticResource MutedFontColor}" FontSize="14" Margin="2,2,0,0" FontWeight="SemiBold"/>
                         </StackPanel>
                     </StackPanel>
-
                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                        <Button Content="Disconnect" Click="DisconnectButton_Click" 
-                            Background="#1A1F2E" Foreground="White" BorderThickness="0"
-                            Width="110" Height="36" Margin="0,0,20,0">
-                            <Button.Resources>
-                                <Style TargetType="Border">
-                                    <Setter Property="CornerRadius" Value="6"/>
-                                </Style>
-                            </Button.Resources>
-                        </Button>
-
+                        <Button Content="Disconnect" Click="DisconnectButton_Click" Background="#1A1F2E" Foreground="White" Width="110" Height="36" Margin="0,0,20,0"/>
                         <Button Content="—" Click="MinimizeButton_Click" Style="{StaticResource SystemButtonStyle}" Width="40" Height="40"/>
                         <Button Content="☐" Click="MaximizeRestoreButton_Click" Style="{StaticResource SystemButtonStyle}" Width="40" Height="40" Margin="5,0"/>
                         <Button Content="✕" Click="CloseButton_Click" Style="{StaticResource SystemButtonStyle}" Width="40" Height="40"/>
@@ -218,28 +121,26 @@
                 </Grid>
 
                 <TabControl x:Name="RibbonMenu" Background="Transparent" BorderThickness="0" Margin="10,0" 
-                    SelectionChanged="RibbonMenu_SelectionChanged" Loaded="RibbonMenu_Loaded">
+                            SelectionChanged="RibbonMenu_SelectionChanged" Loaded="RibbonMenu_Loaded">
+                    <TabItem Header="Dashboard" Tag="M10,20V14H14V20H19V12H22L12,3L2,12H5V20H10Z"/>
                     <TabItem Header="Schema Explorer" Tag="M4,7V17C4,19.21 7.58,21 12,21C16.42,21 20,19.21 20,17V7M4,7C4,4.79 7.58,3 12,3C16.42,3 20,4.79 20,7M4,7C4,9.21 7.58,11 12,11C16.42,11 20,9.21 20,7M12,14C7.58,14 4,12.21 4,10"/>
                     <TabItem Header="Performance" Tag="M2,12H5L8,4L12,20L15,12H22"/>
                     <TabItem Header="Security" Tag="M12,2L4,5V11C4,16.55 7.41,21.74 12,23C16.59,21.74 20,16.55 20,11V5L12,2Z"/>
-                    <TabItem Header="Maintenance" 
-         Tag="M3,21 L10,14 M10,14 L9,12 L11,10 L14,13 L12,15 L10,14 M14,13 L21,6 C22.5,4.5 22.5,2 21,0.5 C19.5,-1 17, -1 15.5,0.5 L8,8" />
-                    <TabItem Header="Configuration" 
-         Tag="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42H9.5L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05L2.34,8.73L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.5,12.97L2.46,14.63L4.34,18.73L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58H14.5L14.87,18.93C15.5,18.68 16.04,18.34 16.56,17.94L19.05,18.95L21.66,15.27L19.43,12.97Z" />
+                    <TabItem Header="Maintenance" Tag="M3,21 L10,14 M10,14 L9,12 L11,10 L14,13 L12,15 L10,14 M14,13 L21,6 C22.5,4.5 22.5,2 21,0.5 C19.5,-1 17, -1 15.5,0.5 L8,8" />
+                    <TabItem Header="Configuration" Tag="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42H9.5L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05L2.34,8.73L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.5,12.97L2.46,14.63L4.34,18.73L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58H14.5L14.87,18.93C15.5,18.68 16.04,18.34 16.56,17.94L19.05,18.95L21.66,15.27L19.43,12.97Z" />
                     <TabItem Header="Design and Dev" Tag="M12,2L2,7V17L12,22L22,17V7L12,2 M12,12L2,7 M12,12V22 M12,12L22,7" />
                     <TabItem Header="High Availability" Tag="M3,3H21V10H3V3M3,14H21V21H3V14Z"/>
                 </TabControl>
-
             </StackPanel>
         </Border>
 
         <Grid>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="280"/>
+                <ColumnDefinition Width="280" x:Name="SidebarColumn"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <Border Grid.Column="0" Background="{StaticResource CardBackground}" BorderThickness="0">
+            <Border Grid.Column="0" Background="{StaticResource CardBackground}" BorderThickness="0" x:Name="SidebarBorder">
                 <Grid Margin="20,0">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -256,23 +157,9 @@
                             <TextBox x:Name="SidebarSearchTextBox" Padding="35,10,10,10" 
                                  Background="Transparent" Foreground="White" 
                                  BorderThickness="0" VerticalContentAlignment="Center"
-                                 CaretBrush="White"
-                                 TextChanged="SidebarSearchTextBox_TextChanged"/>
-                            <TextBlock Text="Search objects..." Foreground="#B0B0B0" IsHitTestVisible="False"
-                                   VerticalAlignment="Center" Margin="35,0,0,0">
-                                <TextBlock.Style>
-                                    <Style TargetType="TextBlock">
-                                        <Setter Property="Visibility" Value="Collapsed"/>
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding Text, ElementName=SidebarSearchTextBox}" Value="">
-                                                <Setter Property="Visibility" Value="Visible"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </TextBlock.Style>
-                            </TextBlock>
-                            <TextBlock Text="🔍" Foreground="White" Opacity="0.6" VerticalAlignment="Center" 
-                                HorizontalAlignment="Left" Margin="12,0,0,0" IsHitTestVisible="False"/>
+                                 CaretBrush="White" TextChanged="SidebarSearchTextBox_TextChanged"/>
+                            <TextBlock Text="Search objects..." Foreground="#B0B0B0" IsHitTestVisible="False" VerticalAlignment="Center" Margin="35,0,0,0" Visibility="{Binding Text.IsEmpty, ElementName=SidebarSearchTextBox, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                            <TextBlock Text="🔍" Foreground="White" Opacity="0.6" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="12,0,0,0" IsHitTestVisible="False"/>
                         </Grid>
                     </Border>
 
@@ -373,8 +260,8 @@
                                                             <ControlTemplate TargetType="Expander">
                                                                 <DockPanel LastChildFill="True">
                                                                     <ToggleButton DockPanel.Dock="Top" Background="Transparent" BorderThickness="0"
-                                                              IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}}"
-                                                              Focusable="False">
+                                                                          IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}}"
+                                                                          Focusable="False">
                                                                         <ToggleButton.Template>
                                                                             <ControlTemplate TargetType="ToggleButton">
                                                                                 <Border Background="Transparent" Padding="0,8">
@@ -386,16 +273,16 @@
                                                                                         </Grid.ColumnDefinitions>
 
                                                                                         <TextBlock Grid.Column="0" Text="🛢" Foreground="{StaticResource AccentColor}" 
-                                                                               FontSize="14" VerticalAlignment="Center"/>
+                                                                                            FontSize="14" VerticalAlignment="Center"/>
 
                                                                                         <TextBlock Grid.Column="1" Text="{Binding Name, Converter={StaticResource SqlTypeToFriendlyNameConverter}}" 
-                                                                               Foreground="White" FontWeight="Bold" FontSize="13" 
-                                                                               VerticalAlignment="Center" Margin="5,0,0,0"/>
+                                                                                            Foreground="White" FontWeight="Bold" FontSize="13" 
+                                                                                            VerticalAlignment="Center" Margin="5,0,0,0"/>
 
                                                                                         <Border Grid.Column="2" Background="{StaticResource SecondaryAccent}" 
-                                                                            CornerRadius="4" Padding="12,4" MinWidth="50" Margin="0,0,5,0">
+                                                                                            CornerRadius="4" Padding="12,4" MinWidth="50" Margin="0,0,5,0">
                                                                                             <TextBlock Text="{Binding ItemCount}" Foreground="{StaticResource DeepBackground}" 
-                                                                                   FontSize="16" FontWeight="Normal" HorizontalAlignment="Center"/>
+                                                                                                FontSize="16" FontWeight="Normal" HorizontalAlignment="Center"/>
                                                                                         </Border>
                                                                                     </Grid>
                                                                                 </Border>
@@ -425,13 +312,8 @@
             </Border>
 
             <Border Grid.Column="1" Background="{StaticResource DeepBackground}">
-                <Grid>
-                    <ContentControl x:Name="MainContentHost" 
-                        HorizontalAlignment="Stretch" 
-                        VerticalAlignment="Stretch" />
-                </Grid>
+                <ContentControl x:Name="MainContentHost" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
             </Border>
-            
         </Grid>
     </DockPanel>
 </Window>

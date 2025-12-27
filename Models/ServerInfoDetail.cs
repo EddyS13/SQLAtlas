@@ -4,24 +4,25 @@ namespace SQLAtlas.Models
 {
     public class ServerInfoDetail
     {
-        // Identification
-        public string ServerName { get; set; } = "Unknown";
-        public string Version { get; set; } = "N/A";
-        public string Edition { get; set; } = "N/A";
-        public string Level { get; set; } = "N/A"; // Service Pack / CU level
-
-        // Hardware Specs
+        public string ServerName { get; set; } = "";
+        public string Version { get; set; } = "";
+        public string Edition { get; set; } = "";
+        public string Level { get; set; } = "";
         public int CpuCount { get; set; }
-        public int PhysicalRamGB { get; set; }
+        public double PhysicalRamGB { get; set; }
+        public string Collation { get; set; } = "";
+        public string OSVersion { get; set; } = "";
+        public string Hypervisor { get; set; } = "";
 
-        // Time Tracking
+        // 1. Add StartTime so your logic has data to work with
         public DateTime StartTime { get; set; }
 
-        // Helper property for the UI: Converts StartTime into "Up for X days..."
+        // 2. Your custom logic (This replaces the old {get; set;} version)
         public string UptimeDisplay
         {
             get
             {
+                if (StartTime == DateTime.MinValue) return "N/A";
                 TimeSpan uptime = DateTime.Now - StartTime;
 
                 if (uptime.TotalDays >= 1)
